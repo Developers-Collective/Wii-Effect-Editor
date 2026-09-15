@@ -37,7 +37,9 @@ FetchContent_MakeAvailable(aurora json)
 add_subdirectory(codec)
 add_subdirectory(runtime)
 
-add_executable(breff_editor_native editor/main.cpp editor/preview_view.cpp editor/document.cpp)
+# GUI executable on Windows and application bundle on macOS. On Linux this
+# remains a native executable and does not launch a terminal.
+add_executable(breff_editor_native WIN32 MACOSX_BUNDLE editor/main.cpp editor/preview_view.cpp editor/document.cpp)
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../logo.png" EDITOR_LOGO_HEX HEX)
 string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," EDITOR_LOGO_BYTES "${EDITOR_LOGO_HEX}")
 configure_file(cmake/logo.h.in generated/logo.h @ONLY)
