@@ -24,11 +24,11 @@ Get the latest successful build from the [rolling release](../../releases/tag/ro
 | Linux x64 | `./EffectEditor` |
 | macOS Apple Silicon | `Effect Editor.app` |
 
-Linux builds target Ubuntu 24.04 or newer and need a working Vulkan driver. The macOS application is not Apple-notarized.
+Linux builds target Ubuntu 24.04 or newer and need a working Vulkan driver. The macOS build targets macOS 14 or newer on Apple Silicon and is not Apple-notarized.
 
 ## Build
 
-Requires Git, CMake 3.25+, Ninja, and a C++20 compiler. On Windows, use a Visual Studio 2022 developer shell with the C++ workload installed. Linux packages are listed in [the build workflow](.github/workflows/build.yml).
+Requires Git, CMake 3.25+, Ninja, and a C++20 compiler. On Windows, use a Visual Studio 2022 developer shell with the C++ workload installed. On macOS, use Xcode 26 or newer: Aurora requires `std::jthread` and `std::stop_token` from its C++ standard library. Linux packages are listed in [the build workflow](.github/workflows/build.yml).
 
 ```sh
 cmake -S src -B build -G Ninja -DCMAKE_BUILD_TYPE=Release

@@ -27,11 +27,11 @@ void EmitterFormPoint::Emission(Emitter* pEmitter, ParticleManager* pManager,
             normal.x = (0.66f - 0.34f * rx) * rx;
         }
 
-        f32 radius = std::sqrtf(1.0f - normal.x * normal.x);
+        f32 radius = std::sqrt(1.0f - normal.x * normal.x);
         rx = pEmitter->mRandom.RandFloat() * NW4R_MATH_PI * 2;
 
-        normal.y = std::cosf(rx) * radius;
-        normal.z = std::sinf(rx) * radius;
+        normal.y = std::cos(rx) * radius;
+        normal.z = std::sin(rx) * radius;
 
         math::VEC3 fromYAxis(normal.x, 0.0f, normal.z);
 

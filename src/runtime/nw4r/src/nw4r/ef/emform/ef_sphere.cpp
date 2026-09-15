@@ -49,7 +49,7 @@ void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager,
         f32 sweepRange = pParams[3] - pParams[2];
         bool isSweepCircle = false;
 
-        f32 f = std::fmodf(pParams[3] - pParams[2], NW4R_MATH_PI * 2);
+        f32 f = std::fmod(pParams[3] - pParams[2], static_cast<f32>(NW4R_MATH_PI * 2));
 
         if (f < NW4R_EF_EMIT_ANGLE_MIN || f > NW4R_EF_EMIT_ANGLE_MAX) {
             isSweepCircle = true;
@@ -99,13 +99,13 @@ void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager,
             math::VEC3 normal;
             math::VEC3 fromYAxis;
 
-            fromYAxis.x = -std::sinf(angle);
+            fromYAxis.x = -std::sin(angle);
             fromYAxis.y = 0.0f;
-            fromYAxis.z = std::cosf(angle);
+            fromYAxis.z = std::cos(angle);
 
-            pos.x = sizeX * radius * std::cosf(x) * fromYAxis.x;
-            pos.y = sizeY * radius * -std::sinf(x);
-            pos.z = sizeZ * radius * std::cosf(x) * fromYAxis.z;
+            pos.x = sizeX * radius * std::cos(x) * fromYAxis.x;
+            pos.y = sizeY * radius * -std::sin(x);
+            pos.z = sizeZ * radius * std::cos(x) * fromYAxis.z;
 
             if (pos.x != 0.0f || pos.y != 0.0f || pos.z != 0.0f) {
                 math::VEC3Normalize(&normal, &pos);
@@ -113,7 +113,7 @@ void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager,
                 normal.x = normal.y = normal.z = 0.0f;
             }
 
-            if (std::cosf(x) < 0.0f) {
+            if (std::cos(x) < 0.0f) {
                 fromYAxis.x = -fromYAxis.x;
                 fromYAxis.z = -fromYAxis.z;
             }
@@ -157,9 +157,9 @@ void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager,
             f32 x = pEmitter->mRandom.RandFloat() * NW4R_MATH_PI +
                     (NW4R_MATH_PI / 2);
 
-            pos.x = sizeX * dist * -std::cosf(x) * std::sinf(angle);
-            pos.y = sizeY * dist * -std::sinf(x);
-            pos.z = sizeZ * dist * std::cosf(x) * std::cosf(angle);
+            pos.x = sizeX * dist * -std::cos(x) * std::sin(angle);
+            pos.y = sizeY * dist * -std::sin(x);
+            pos.z = sizeZ * dist * std::cos(x) * std::cos(angle);
 
             math::VEC3 normal;
             if (pos.x != 0.0f || pos.y != 0.0f || pos.z != 0.0f) {

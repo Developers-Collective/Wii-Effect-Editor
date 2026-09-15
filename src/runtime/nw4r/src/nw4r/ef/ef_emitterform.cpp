@@ -37,14 +37,14 @@ void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter,
         f32 ry = pEmitter->mRandom.RandFloat() * NW4R_MATH_PI * 2;
         f32 rz = pEmitter->mRandom.RandFloat() * NW4R_MATH_PI * 2;
 
-        f32 sr = std::sinf(rx);
-        f32 cr = std::cosf(rx);
+        f32 sr = std::sin(rx);
+        f32 cr = std::cos(rx);
 
-        f32 sp = std::sinf(ry);
-        f32 cp = std::cosf(ry);
+        f32 sp = std::sin(ry);
+        f32 cp = std::cos(ry);
 
-        f32 sh = std::sinf(rz);
-        f32 ch = std::cosf(rz);
+        f32 sh = std::sin(rz);
+        f32 ch = std::cos(rz);
 
         pVel->x +=
             (cr * sp * ch + sr * sh) * pEmitter->mParameter.mVelPowerRandomDir;

@@ -35,7 +35,7 @@ inline f32 FAbs(f32 x) {
 }
 
 inline f32 FCeil(f32 x) {
-    return std::ceilf(x);
+    return std::ceil(x);
 }
 
 inline f32 FExp(f32 x) {
@@ -43,7 +43,7 @@ inline f32 FExp(f32 x) {
 }
 
 inline f32 FFloor(f32 x) {
-    return std::floorf(x);
+    return std::floor(x);
 }
 
 inline f32 FInv(f32 x) {
@@ -51,11 +51,11 @@ inline f32 FInv(f32 x) {
 }
 
 inline f32 FMod(f32 x, f32 y) {
-    return std::fmodf(x, y);
+    return std::fmod(x, y);
 }
 
 inline f32 FModf(f32 x, f32* pY) {
-    return std::modff(x, pY);
+    return std::modf(x, pY);
 }
 
 inline f32 FSqrt(f32 x) {

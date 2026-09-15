@@ -554,7 +554,7 @@ static f32 GetLODratio(math::VEC3& rEmitPos, math::VEC3& rCamPos, f32 cameraFar,
     f32 Fl_Nl;
 
     Vl = cameraFar - cameraNear;
-    Gl = std::sqrtf(VEC3DistSq(&rCamPos, &rEmitPos)) - cameraNear;
+    Gl = std::sqrt(VEC3DistSq(&rCamPos, &rEmitPos)) - cameraNear;
     Nl = Vl * lodNear;
     Fl = Vl * lodFar;
 

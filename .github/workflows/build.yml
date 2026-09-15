@@ -9,78 +9,88 @@ on:
 permissions:
   contents: read
 
+env:
+  STAGING_TAG: ci-staging-${{ github.run_id }}-${{ github.run_attempt }}
+
+# Finish a release before starting the next one on the same branch.
 concurrency:
   group: effect-editor-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
+    if: github.event_name == 'pull_request' || github.ref_name != github.event.repository.default_branch
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-24.04
             platform: Linux-x64
-          - os: macos-14
+          - os: macos-26
             platform: macOS-arm64
           - os: windows-2022
             platform: Windows-x64
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config libasound2-dev libpulse-dev \
-            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev \
-            libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libegl1-mesa-dev \
-            libgl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev \
-            libdecor-0-dev xvfb mesa-vulkan-drivers
-      - name: MSVC environment
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-      - name: Configure
-        run: >-
-          cmake -S src -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          -DAURORA_DAWN_PROVIDER=package -DAURORA_SDL3_PROVIDER=vendor
-          -DAURORA_SDL3_LINKAGE=static
-      - name: Build
-        run: cmake --build build --target breff_editor_native --parallel 3
-      - name: Package runtime dependencies
-        run: cmake --install build --prefix stage --config Release --component EffectEditor
-      - name: Linux startup check
-        if: runner.os == 'Linux'
-        run: xvfb-run -a timeout 90 ./stage/EffectEditor --smoke-test
-      - name: Archive
-        shell: bash
-        run: |
-          mkdir -p artifacts
-          cd stage
-          cmake -E tar cf "../artifacts/Wii-Effect-Editor-${{ matrix.platform }}.zip" --format=zip .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Wii-Effect-Editor-${{ matrix.platform }}
-          path: artifacts/*.zip
-          if-no-files-found: error
+    uses: ./.github/workflows/build-platform.yml
+    with:
+      runner: ${{ matrix.os }}
+      platform: ${{ matrix.platform }}
 
-  release:
-    needs: build
+  prepare_release:
     if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - name: Create temporary draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$STAGING_TAG" --draft --target "$GITHUB_SHA" \
+            --title 'Temporary CI packages' --notes 'Removed after this workflow completes.'
+
+  release_build:
+    needs: prepare_release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: Linux-x64
+          - os: macos-26
+            platform: macOS-arm64
+          - os: windows-2022
+            platform: Windows-x64
+    uses: ./.github/workflows/build-platform.yml
+    with:
+      runner: ${{ matrix.os }}
+      platform: ${{ matrix.platform }}
+      stage_release: true
+      staging_tag: ci-staging-${{ github.run_id }}-${{ github.run_attempt }}
+
+  release:
+    needs: release_build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: Wii-Effect-Editor-*
-          path: artifacts
-          merge-multiple: true
+      - name: Download and verify staged packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$STAGING_TAG" --pattern 'Wii-Effect-Editor-*.zip' --dir artifacts
+          for platform in Linux-x64 macOS-arm64 Windows-x64; do
+            test -s "artifacts/Wii-Effect-Editor-$platform.zip"
+          done
       - name: Update rolling release
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           set -euo pipefail
           git tag -f rolling "$GITHUB_SHA"
@@ -88,8 +98,20 @@ jobs:
           printf 'Automatic builds from commit `%s`.\n\nWindows x64, Linux x64 (Ubuntu 24.04 or newer), and macOS Apple Silicon.\n' "$GITHUB_SHA" > release-notes.md
           if gh release view rolling >/dev/null 2>&1; then
             gh release upload rolling artifacts/*.zip --clobber
-            gh release edit rolling --title 'Effect Editor â€” latest build' --notes-file release-notes.md --latest
+            gh release edit rolling --title 'Effect Editor - latest build' --notes-file release-notes.md --latest
           else
-            gh release create rolling artifacts/*.zip --verify-tag --title 'Effect Editor â€” latest build' --notes-file release-notes.md --latest
+            gh release create rolling artifacts/*.zip --verify-tag --title 'Effect Editor - latest build' --notes-file release-notes.md --latest
           fi
 
+  cleanup:
+    needs: [prepare_release, release_build, release]
+    if: always() && needs.prepare_release.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Remove temporary draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release delete "$STAGING_TAG" --yes

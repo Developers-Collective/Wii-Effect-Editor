@@ -1,7 +1,27 @@
-﻿cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.25)
 project(Wii-Effect-Editor LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Aurora requires C++20's cooperative thread cancellation support. Check it
+# before downloading/building dependencies so older libc++ gives a clear error.
+include(CheckCXXSourceCompiles)
+include(CMakePushCheckState)
+find_package(Threads REQUIRED)
+cmake_push_check_state(RESET)
+set(CMAKE_REQUIRED_LIBRARIES Threads::Threads)
+check_cxx_source_compiles([[
+    #include <thread>
+    #include <stop_token>
+    int main() {
+        std::jthread worker([](std::stop_token) {});
+        worker.request_stop();
+    }
+]] EFFECT_EDITOR_HAS_JTHREAD)
+cmake_pop_check_state()
+if(NOT EFFECT_EDITOR_HAS_JTHREAD)
+    message(FATAL_ERROR "Aurora requires std::jthread and std::stop_token. On macOS, select Xcode 26 or newer; on other platforms, use a C++20 standard library with jthread support.")
+endif()
+
 include(FetchContent)
 
 set(AURORA_ENABLE_DVD OFF CACHE BOOL "" FORCE)

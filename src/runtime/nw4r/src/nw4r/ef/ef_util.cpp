@@ -24,14 +24,14 @@ u16 UtlistToArray(const ut::List* pList, void** ppArray, int maxlen) {
 math::VEC3& Rotation2VecY(const nw4r::math::VEC3& rRot,
                           nw4r::math::VEC3* pVec) {
 
-    f32 sx = std::sinf(rRot.x);
-    f32 cx = std::cosf(rRot.x);
+    f32 sx = std::sin(rRot.x);
+    f32 cx = std::cos(rRot.x);
 
-    f32 sy = std::sinf(rRot.y);
-    f32 cy = std::cosf(rRot.y);
+    f32 sy = std::sin(rRot.y);
+    f32 cy = std::cos(rRot.y);
 
-    f32 sz = std::sinf(rRot.z);
-    f32 cz = std::cosf(rRot.z);
+    f32 sz = std::sin(rRot.z);
+    f32 cz = std::cos(rRot.z);
 
     pVec->x = sx * sy * cz - cx * sz;
     pVec->y = sx * sy * sz + cx * cz;
@@ -119,22 +119,22 @@ void MtxGetRotation(const math::MTX34& rMtx, math::VEC3* pRot) {
     f32 sx, sy, sz;
     f32 f;
 
-    if (!((sx = std::sqrtf(rMtx._00 * rMtx._00 + rMtx._10 * rMtx._10 +
+    if (!((sx = std::sqrt(rMtx._00 * rMtx._00 + rMtx._10 * rMtx._10 +
                            rMtx._20 * rMtx._20)) < NW4R_MATH_FLT_MIN) &&
-        !((sy = std::sqrtf(rMtx._01 * rMtx._01 + rMtx._11 * rMtx._11 +
+        !((sy = std::sqrt(rMtx._01 * rMtx._01 + rMtx._11 * rMtx._11 +
                            rMtx._21 * rMtx._21)) < NW4R_MATH_FLT_MIN) &&
-        !((sz = std::sqrtf(rMtx._02 * rMtx._02 + rMtx._12 * rMtx._12 +
+        !((sz = std::sqrt(rMtx._02 * rMtx._02 + rMtx._12 * rMtx._12 +
                            rMtx._22 * rMtx._22)) < NW4R_MATH_FLT_MIN)) {
 
         f = -rMtx._20 / sx;
-        pRot->y = std::asinf(f);
-        C = std::cosf(pRot->y);
+        pRot->y = std::asin(f);
+        C = std::cos(pRot->y);
 
         if (C >= NW4R_MATH_FLT_MIN) {
-            pRot->x = std::atan2f(rMtx._21 / sy, rMtx._22 / sz);
-            pRot->z = std::atan2f(rMtx._10, rMtx._00);
+            pRot->x = std::atan2(rMtx._21 / sy, rMtx._22 / sz);
+            pRot->z = std::atan2(rMtx._10, rMtx._00);
         } else {
-            pRot->x = std::atan2f(rMtx._01, rMtx._11);
+            pRot->x = std::atan2(rMtx._01, rMtx._11);
             pRot->z = 0.0f;
         }
     } else {
@@ -190,7 +190,7 @@ void MtxGetScale(const math::MTX34& rMtx, math::VEC3* pScale) {
             mag = math::VEC3LenSq(&v2);
 
             if (mag > NW4R_MATH_FLT_EPSILON) {
-                pScale->z = std::sqrtf(mag);
+                pScale->z = std::sqrt(mag);
                 math::VEC3Cross(&v, &v1, &v2);
 
                 if (math::VEC3Dot(&v0, &v) < 0.0f) {
@@ -213,7 +213,7 @@ void MtxGetScale(const math::MTX34& rMtx, math::VEC3* pScale) {
             mag = math::VEC3LenSq(&v2);
 
             if (mag > NW4R_MATH_FLT_EPSILON) {
-                pScale->z = std::sqrtf(mag);
+                pScale->z = std::sqrt(mag);
             } else {
                 pScale->z = 0.0f;
             }

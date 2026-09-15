@@ -1,0 +1,72 @@
+name: Build platform
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+      platform:
+        required: true
+        type: string
+      stage_release:
+        default: false
+        type: boolean
+      staging_tag:
+        default: ''
+        type: string
+
+# Permissions are inherited from the caller: read-only for verification,
+# contents: write only for default-branch release builds.
+jobs:
+  build:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build pkg-config libasound2-dev libpulse-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev \
+            libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libegl1-mesa-dev \
+            libgl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev \
+            libdecor-0-dev xvfb mesa-vulkan-drivers
+      - name: macOS toolchain
+        if: runner.os == 'macOS'
+        run: |
+          xcodebuild -version
+          xcrun clang++ --version
+          echo "MACOSX_DEPLOYMENT_TARGET=14.0" >> "$GITHUB_ENV"
+      - name: MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure
+        run: >-
+          cmake -S src -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          -DAURORA_DAWN_PROVIDER=package -DAURORA_SDL3_PROVIDER=vendor
+          -DAURORA_SDL3_LINKAGE=static
+      - name: Build
+        run: cmake --build build --target breff_editor_native --parallel 3
+      - name: Package runtime dependencies
+        run: cmake --install build --prefix stage --config Release --component EffectEditor
+      - name: Linux startup check
+        if: runner.os == 'Linux'
+        run: xvfb-run -a timeout 90 ./stage/EffectEditor --smoke-test
+      - name: Archive
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          cd stage
+          cmake -E tar cf "../artifacts/Wii-Effect-Editor-${{ inputs.platform }}.zip" --format=zip .
+      - name: Upload package to temporary draft release
+        if: inputs.stage_release && github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGING_TAG: ${{ inputs.staging_tag }}
+        run: |
+          set -euo pipefail
+          gh release upload "$STAGING_TAG" artifacts/*.zip --clobber

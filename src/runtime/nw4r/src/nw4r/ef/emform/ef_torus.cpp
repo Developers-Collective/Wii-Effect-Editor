@@ -42,7 +42,7 @@ void EmitterFormTorus::Emission(Emitter* pEmitter, ParticleManager* pManager,
     }
 
     if (flags & EmitterDesc::EMIT_FLAG_17) {
-        f32 f = std::fmodf(pParams[3] - pParams[2], NW4R_MATH_PI * 2);
+        f32 f = std::fmod(pParams[3] - pParams[2], static_cast<f32>(NW4R_MATH_PI * 2));
 
         if (f < NW4R_EF_EMIT_ANGLE_MIN || f > NW4R_EF_EMIT_ANGLE_MAX) {
             dangle =
@@ -74,11 +74,11 @@ void EmitterFormTorus::Emission(Emitter* pEmitter, ParticleManager* pManager,
             ringAngle = pEmitter->mRandom.RandFloat() * NW4R_MATH_PI * 2;
         }
 
-        f32 sa = std::sinf(angleOffset + angle);
-        f32 ca = std::cosf(angleOffset + angle);
+        f32 sa = std::sin(angleOffset + angle);
+        f32 ca = std::cos(angleOffset + angle);
 
-        f32 sr = std::sinf(ringAngle);
-        f32 cr = std::cosf(ringAngle);
+        f32 sr = std::sin(ringAngle);
+        f32 cr = std::cos(ringAngle);
 
         pos.x = (inner * cr * sa + sa) * sizeX / (1.0f + inner);
         pos.y = sizeY * sr;

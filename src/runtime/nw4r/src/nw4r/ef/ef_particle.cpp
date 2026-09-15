@@ -265,7 +265,7 @@ void Particle::Draw_GetColor(int layer, GXColor* pColorPri,
 
         case EmitterDrawSetting::ALPHAFLICK_SINE: {
             alpha = 128 + rSetting.mAlphaFlickAmplitude *
-                              std::sinf(2 * NW4R_MATH_PI * pos / cycle);
+                              std::sin(static_cast<f32>(2 * NW4R_MATH_PI * pos / cycle));
             break;
         }
 

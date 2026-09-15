@@ -704,10 +704,10 @@ bool DrawStrategyImpl::_SetupTexture(Particle* pParticle,
 
                 math::MTX34Identity(&work);
                 {
-                    f32 cr = std::cosf(pParticle->mParameter.mTextureRotate[i]);
+                    f32 cr = std::cos(pParticle->mParameter.mTextureRotate[i]);
                     work._00 = work._11 = cr;
 
-                    f32 sr = std::sinf(pParticle->mParameter.mTextureRotate[i]);
+                    f32 sr = std::sin(pParticle->mParameter.mTextureRotate[i]);
                     work._01 = -sr;
                     work._10 = sr;
                 }

@@ -187,10 +187,10 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                 normal.z = 0.0f;
             } else {
                 f32 cone = dist * diffuseNrm;
-                f32 ylen = 1.0f / std::tanf(cone);
+                f32 ylen = 1.0f / std::tan(cone);
 
                 normal.x = pos.x;
-                normal.y = ylen * -std::sqrtf(pos.x * pos.x + pos.z * pos.z);
+                normal.y = ylen * -std::sqrt(pos.x * pos.x + pos.z * pos.z);
                 normal.z = pos.z;
             }
 
@@ -237,13 +237,13 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.z = -1.0f;
                 } else {
                     f32 cone = dist * diffuseNrm;
-                    f32 ylen = 1.0f / std::tanf(cone);
+                    f32 ylen = 1.0f / std::tan(cone);
 
                     normal.x = pos.x;
                     normal.y = pos.y;
 
                     normal.z =
-                        ylen * -std::sqrtf(pos.x * pos.x + pos.y * pos.y);
+                        ylen * -std::sqrt(pos.x * pos.x + pos.y * pos.y);
                 }
 
                 EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd,
@@ -286,9 +286,9 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.z = 0.0f;
                 } else {
                     f32 cone = dist * diffuseNrm;
-                    f32 ylen = 1.0f / std::tanf(cone);
+                    f32 ylen = 1.0f / std::tan(cone);
 
-                    normal.x = ylen * std::sqrtf(pos.y * pos.y + pos.z * pos.z);
+                    normal.x = ylen * std::sqrt(pos.y * pos.y + pos.z * pos.z);
 
                     normal.y = pos.y;
                     normal.z = pos.z;
@@ -334,11 +334,11 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.z = 1.0f;
                 } else {
                     f32 cone = dist * diffuseNrm;
-                    f32 ylen = 1.0f / std::tanf(cone);
+                    f32 ylen = 1.0f / std::tan(cone);
 
                     normal.x = pos.x;
                     normal.y = pos.y;
-                    normal.z = ylen * std::sqrtf(pos.x * pos.x + pos.y * pos.y);
+                    normal.z = ylen * std::sqrt(pos.x * pos.x + pos.y * pos.y);
                 }
 
                 EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd,
@@ -381,10 +381,10 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.z = 0.0f;
                 } else {
                     f32 cone = dist * diffuseNrm;
-                    f32 ylen = 1.0f / std::tanf(cone);
+                    f32 ylen = 1.0f / std::tan(cone);
 
                     normal.x =
-                        ylen * -std::sqrtf(pos.y * pos.y + pos.z * pos.z);
+                        ylen * -std::sqrt(pos.y * pos.y + pos.z * pos.z);
                     normal.y = pos.y;
                     normal.z = pos.z;
                 }
@@ -482,10 +482,10 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.z = 0.0f;
                 } else {
                     f32 cone = dist * diffuseNrm;
-                    f32 ylen = 1.0f / std::tanf(cone);
+                    f32 ylen = 1.0f / std::tan(cone);
 
                     normal.x = pos.x;
-                    normal.y = ylen * std::sqrtf(pos.x * pos.x + pos.z * pos.z);
+                    normal.y = ylen * std::sqrt(pos.x * pos.x + pos.z * pos.z);
                     normal.z = pos.z;
                 }
 
@@ -607,32 +607,32 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     dist = MAX(std::fabs(pos.y), std::fabs(pos.z));
 
                     f32 cone = dist * diffuseNrm;
-                    f32 ylen = 1.0f / std::tanf(cone);
+                    f32 ylen = 1.0f / std::tan(cone);
 
                     normal.x *=
-                        ylen * std::sqrtf(pos.y * pos.y + pos.z * pos.z);
+                        ylen * std::sqrt(pos.y * pos.y + pos.z * pos.z);
                     normal.y = pos.y;
                     normal.z = pos.z;
                 } else if (normal.y != 0.0f) {
                     dist = MAX(std::fabs(pos.x), std::fabs(pos.z));
 
                     f32 cone = dist * diffuseNrm;
-                    f32 ylen = 1.0f / std::tanf(cone);
+                    f32 ylen = 1.0f / std::tan(cone);
 
                     normal.x = pos.x;
                     normal.y *=
-                        ylen * std::sqrtf(pos.x * pos.x + pos.z * pos.z);
+                        ylen * std::sqrt(pos.x * pos.x + pos.z * pos.z);
                     normal.z = pos.z;
                 } else {
                     dist = MAX(std::fabs(pos.x), std::fabs(pos.y));
 
                     f32 cone = dist * diffuseNrm;
-                    f32 ylen = 1.0f / std::tanf(cone);
+                    f32 ylen = 1.0f / std::tan(cone);
 
                     normal.x = pos.x;
                     normal.y = pos.y;
                     normal.z *=
-                        ylen * std::sqrtf(pos.x * pos.x + pos.y * pos.y);
+                        ylen * std::sqrt(pos.x * pos.x + pos.y * pos.y);
                 }
             }
 
