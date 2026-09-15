@@ -1,0 +1,11 @@
+/dist/
+/.vscode/
+/stage/
+/artifacts/
+CMakeUserPresets.json
+*.log
+*.pdb
+*.ilk
+*.obj
+*.o
+.DS_Store
