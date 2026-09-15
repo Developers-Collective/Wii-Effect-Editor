@@ -51,7 +51,7 @@ jobs:
       - name: Build
         run: cmake --build build --target breff_editor_native --parallel 3
       - name: Package runtime dependencies
-        run: cmake --install build --prefix stage --config Release --component EffectEditor
+        run: cmake --install build --prefix "${{ github.workspace }}/stage" --config Release --component EffectEditor
       - name: Linux startup check
         if: runner.os == 'Linux'
         run: xvfb-run -a timeout 90 ./stage/EffectEditor --smoke-test

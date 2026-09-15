@@ -8,9 +8,13 @@ if(APPLE)
     install(TARGETS breff_editor_native BUNDLE DESTINATION . COMPONENT EffectEditor)
     install(CODE [[
         include(BundleUtilities)
-        fixup_bundle("${CMAKE_INSTALL_PREFIX}/Effect Editor.app" "" "")
+        # --prefix may be relative. BundleUtilities compares this directory
+        # with resolved absolute executable paths, so normalize it first.
+        get_filename_component(_editor_bundle
+            "${CMAKE_INSTALL_PREFIX}/Effect Editor.app" REALPATH)
+        fixup_bundle("${_editor_bundle}" "" "")
         execute_process(COMMAND codesign --force --deep --sign -
-            "${CMAKE_INSTALL_PREFIX}/Effect Editor.app" COMMAND_ERROR_IS_FATAL ANY)
+            "${_editor_bundle}" COMMAND_ERROR_IS_FATAL ANY)
     ]] COMPONENT EffectEditor)
 elseif(WIN32)
     install(TARGETS breff_editor_native RUNTIME DESTINATION . COMPONENT EffectEditor)
