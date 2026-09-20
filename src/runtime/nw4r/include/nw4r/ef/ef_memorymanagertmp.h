@@ -22,10 +22,10 @@ template <typename T> class NW4R_EF_MEMORY_MANAGER_TMP_CLASS {
     ::nw4r::ut::List mLeasedList; // at 0x10
     int mStructSize;              // at 0x1C
 
-public:
+  public:
     static const u32 OBJECT_ID_BASE = 0x10000;
 
-public:
+  public:
     NW4R_EF_MEMORY_MANAGER_TMP_CLASS(int aCount, T* aHeap) {
         u16 offset = offsetof(T, mMemoryLink);
         int structSize = sizeof(T);
@@ -43,8 +43,7 @@ public:
     }
 
     virtual void AssignObjectID(void* pObj) {
-        static_cast<T*>(pObj)->mObjectID +=
-            OBJECT_ID_BASE;
+        static_cast<T*>(pObj)->mObjectID += OBJECT_ID_BASE;
     } // at 0x8
 
     // Not implemented for Particle
@@ -96,9 +95,7 @@ template <> inline void TEffectOM::GarbageCollection() {
         while (pPtr != NULL) {
             TEffect* pObj = static_cast<TEffect*>(pPtr);
 
-            if (pObj->GetLifeStatus() ==
-                    ::nw4r::ef::ReferencedObject::NW4R_EF_LS_CLOSING &&
-                pObj->GetRefCount() == 0) {
+            if (pObj->GetLifeStatus() == ::nw4r::ef::ReferencedObject::NW4R_EF_LS_CLOSING && pObj->GetRefCount() == 0) {
 
                 pObj->mManagerES->mActivityList[pObj->mGroupID].ToFree(pObj);
                 ::nw4r::ut::List_Remove(&mLeasedList, pObj);
@@ -120,9 +117,7 @@ template <> inline void TEmitterOM::GarbageCollection() {
         while (pPtr != NULL) {
             TEmitter* pObj = static_cast<TEmitter*>(pPtr);
 
-            if (pObj->GetLifeStatus() ==
-                    ::nw4r::ef::ReferencedObject::NW4R_EF_LS_CLOSING &&
-                pObj->GetRefCount() == 0) {
+            if (pObj->GetLifeStatus() == ::nw4r::ef::ReferencedObject::NW4R_EF_LS_CLOSING && pObj->GetRefCount() == 0) {
 
                 pObj->mManagerEF->mActivityList.ToFree(pObj);
                 ::nw4r::ut::List_Remove(&mLeasedList, pObj);
@@ -144,9 +139,7 @@ template <> inline void TParticleManagerOM::GarbageCollection() {
         while (pPtr != NULL) {
             TParticleManager* pObj = static_cast<TParticleManager*>(pPtr);
 
-            if (pObj->GetLifeStatus() ==
-                    ::nw4r::ef::ReferencedObject::NW4R_EF_LS_CLOSING &&
-                pObj->GetRefCount() == 0) {
+            if (pObj->GetLifeStatus() == ::nw4r::ef::ReferencedObject::NW4R_EF_LS_CLOSING && pObj->GetRefCount() == 0) {
 
                 pObj->mManagerEM->mActivityList.ToFree(pObj);
                 ::nw4r::ut::List_Remove(&mLeasedList, pObj);
@@ -160,7 +153,8 @@ template <> inline void TParticleManagerOM::GarbageCollection() {
 }
 
 #if !defined(NONMATCHING)
-template <> inline void TParticleOM::GarbageCollection() {}
+template <> inline void TParticleOM::GarbageCollection() {
+}
 #endif
 
 NW4R_EF_MEMORY_MANAGER_NAMESPACE_CLOSE;

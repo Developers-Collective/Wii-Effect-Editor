@@ -32,7 +32,8 @@ bool IntersectionAABB(const AABB* pA, const AABB* pB);
  *
  ******************************************************************************/
 struct SPHERE {
-    SPHERE() {}
+    SPHERE() {
+    }
 
     VEC3 C; // at 0x0
     f32 r;  // at 0xC
@@ -44,7 +45,8 @@ struct SPHERE {
  *
  ******************************************************************************/
 struct PLANE {
-    PLANE() {}
+    PLANE() {
+    }
 
     f32 Test(const VEC3& rPoint) const {
         return d + VEC3Dot(&n, &rPoint);
@@ -62,7 +64,8 @@ struct PLANE {
  *
  ******************************************************************************/
 struct AABB {
-    AABB() {}
+    AABB() {
+    }
 
     void Set(const VEC3* pPoints, unsigned int num);
     void Set(const AABB* pBox, const MTX34* pMtx);
@@ -77,7 +80,7 @@ struct AABB {
  *
  ******************************************************************************/
 class FRUSTUM {
-private:
+  private:
     enum Point {
         POINT_NEAR_TL,
         POINT_NEAR_TR,
@@ -103,13 +106,13 @@ private:
         PLANE_MAX
     };
 
-public:
+  public:
     void Set(f32 fovy, f32 aspect, f32 n, f32 f, const MTX34& rCamMtx);
     void Set(f32 t, f32 b, f32 l, f32 r, f32 n, f32 f, const MTX34& rCamMtx);
 
     IntersectionResult IntersectAABB_Ex(const AABB* pBox) const;
 
-private:
+  private:
     MTX34 mCamMtx;            // at 0x0
     PLANE mPlaneL;            // at 0x30
     PLANE mPlaneR;            // at 0x40

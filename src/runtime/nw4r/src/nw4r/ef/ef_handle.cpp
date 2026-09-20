@@ -3,10 +3,11 @@
 namespace nw4r {
 namespace ef {
 
-HandleBase::HandleBase() : mObjectID(NULL), mObject(NULL) {}
+HandleBase::HandleBase() : mObjectID(NULL), mObject(NULL) {
+}
 
-HandleBase::HandleBase(const HandleBase& rOther)
-    : mObjectID(rOther.mObjectID), mObject(rOther.mObject) {}
+HandleBase::HandleBase(const HandleBase& rOther) : mObjectID(rOther.mObjectID), mObject(rOther.mObject) {
+}
 
 HandleBase::HandleBase(LinkedObject* pObject) {
     if (pObject == NULL) {

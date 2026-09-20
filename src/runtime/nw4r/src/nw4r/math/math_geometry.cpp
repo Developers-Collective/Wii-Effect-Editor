@@ -150,8 +150,7 @@ void FRUSTUM::Set(f32 fovy, f32 aspect, f32 n, f32 f, const MTX34& rCamMtx) {
     Set(ny, -ny, -nx, nx, n, f, rCamMtx);
 }
 
-void FRUSTUM::Set(f32 t, f32 b, f32 l, f32 r, f32 n, f32 f,
-                  const MTX34& rCamMtx) {
+void FRUSTUM::Set(f32 t, f32 b, f32 l, f32 r, f32 n, f32 f, const MTX34& rCamMtx) {
     MTX34 invcam;
     MTX34Inv(&invcam, &rCamMtx);
     MTX34Copy(&mCamMtx, &rCamMtx);
@@ -219,8 +218,7 @@ void FRUSTUM::Set(f32 t, f32 b, f32 l, f32 r, f32 n, f32 f,
 }
 
 bool IntersectionAABB(const AABB* pA, const AABB* pB) {
-    if (pA->min.x > pB->max.x || pB->min.x > pA->max.x ||
-        pA->min.y > pB->max.y || pB->min.y > pA->max.y ||
+    if (pA->min.x > pB->max.x || pB->min.x > pA->max.x || pA->min.y > pB->max.y || pB->min.y > pA->max.y ||
         pA->min.z > pB->max.z || pB->min.z > pA->max.z) {
         return false;
     }

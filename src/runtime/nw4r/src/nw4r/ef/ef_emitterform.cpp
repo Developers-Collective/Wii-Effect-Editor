@@ -5,11 +5,8 @@
 namespace nw4r {
 namespace ef {
 
-void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter,
-                               const math::VEC3& rPos,
-                               const math::VEC3& rNormal,
-                               const math::VEC3& rFromOrigin,
-                               const math::VEC3& rFromYAxis) const {
+void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter, const math::VEC3& rPos, const math::VEC3& rNormal,
+                               const math::VEC3& rFromOrigin, const math::VEC3& rFromYAxis) const {
 
 #pragma unused(rPos)
 
@@ -17,8 +14,7 @@ void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter,
     f32 fltWork;
 
     if (pEmitter->mParameter.mVelPowerRadiationDir != 0.0f) {
-        math::VEC3Scale(pVel, &rFromOrigin,
-                        pEmitter->mParameter.mVelPowerRadiationDir);
+        math::VEC3Scale(pVel, &rFromOrigin, pEmitter->mParameter.mVelPowerRadiationDir);
     } else {
         pVel->x = 0.0f;
         pVel->y = 0.0f;
@@ -26,8 +22,7 @@ void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter,
     }
 
     if (pEmitter->mParameter.mVelPowerYAxis != 0.0f) {
-        math::VEC3Scale(&vecWork, &rFromYAxis,
-                        pEmitter->mParameter.mVelPowerYAxis);
+        math::VEC3Scale(&vecWork, &rFromYAxis, pEmitter->mParameter.mVelPowerYAxis);
 
         math::VEC3Add(pVel, pVel, &vecWork);
     }
@@ -46,10 +41,8 @@ void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter,
         f32 sh = std::sin(rz);
         f32 ch = std::cos(rz);
 
-        pVel->x +=
-            (cr * sp * ch + sr * sh) * pEmitter->mParameter.mVelPowerRandomDir;
-        pVel->y +=
-            (cr * sp * sh - sr * ch) * pEmitter->mParameter.mVelPowerRandomDir;
+        pVel->x += (cr * sp * ch + sr * sh) * pEmitter->mParameter.mVelPowerRandomDir;
+        pVel->y += (cr * sp * sh - sr * ch) * pEmitter->mParameter.mVelPowerRandomDir;
 
         pVel->z += pEmitter->mParameter.mVelPowerRandomDir * cr * cp;
     }
@@ -63,8 +56,7 @@ void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter,
     if (pEmitter->mParameter.mVelPowerSpecDir != 0.0f) {
         if (pEmitter->mParameter.mVelDiffusionSpecDir == 0.0f) {
             math::MTX34 mtx;
-            math::MTX34RotXYZRad(&mtx, pEmitter->mParameter.mVelSpecDir.x,
-                                 pEmitter->mParameter.mVelSpecDir.y,
+            math::MTX34RotXYZRad(&mtx, pEmitter->mParameter.mVelSpecDir.x, pEmitter->mParameter.mVelSpecDir.y,
                                  pEmitter->mParameter.mVelSpecDir.z);
 
             math::VEC3 vec(0.0f, 1.0f, 0.0f);
@@ -84,8 +76,7 @@ void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter,
             // clang-format on
 
             math::MTX34 rotFromZ;
-            math::MTX34RotXYZRad(&rotFromZ, pEmitter->mParameter.mVelSpecDir.x,
-                                 pEmitter->mParameter.mVelSpecDir.y,
+            math::MTX34RotXYZRad(&rotFromZ, pEmitter->mParameter.mVelSpecDir.x, pEmitter->mParameter.mVelSpecDir.y,
                                  pEmitter->mParameter.mVelSpecDir.z);
 
             math::MTX34Mult(&mtx, &rotFromZ, &mtx);
@@ -97,8 +88,7 @@ void EmitterForm::CalcVelocity(math::VEC3* pVel, Emitter* pEmitter,
     }
 
     if (pEmitter->mParameter.mVelInitVelocityRandom != 0) {
-        fltWork = 1.0f - pEmitter->mParameter.mVelInitVelocityRandom *
-                             (1.0f / 100.0f) *
+        fltWork = 1.0f - pEmitter->mParameter.mVelInitVelocityRandom * (1.0f / 100.0f) *
                              (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f);
 
         pVel->x *= fltWork;

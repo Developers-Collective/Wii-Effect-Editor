@@ -27,10 +27,9 @@ struct TextureData;
  *
  ******************************************************************************/
 class DrawStrategyImpl : public DrawStrategy {
-public:
+  public:
     typedef Particle* (*GetFirstDrawParticleFunc)(ParticleManager* pManager);
-    typedef Particle* (*GetNextDrawParticleFunc)(ParticleManager* pManager,
-                                                 Particle* pParticle);
+    typedef Particle* (*GetNextDrawParticleFunc)(ParticleManager* pManager, Particle* pParticle);
 
     enum ParticleDrawOrder { DRAWORDER_YOUNGERS_FIRST, DRAWORDER_ELDERS_FIRST };
 
@@ -52,8 +51,7 @@ public:
         AheadContext(const math::MTX34& rViewMtx, ParticleManager* pManager);
     };
 
-    typedef void (*CalcAheadFunc)(math::VEC3* pAxisY, AheadContext* pContext,
-                                  Particle* pParticle);
+    typedef void (*CalcAheadFunc)(math::VEC3* pAxisY, AheadContext* pContext, Particle* pParticle);
 
     struct PrevTexture {
         const TextureData* data; // at 0x0
@@ -82,26 +80,21 @@ public:
             translate.y = 0.0f;
         }
 
-        bool IsEqual(const TextureData* _pData, f32 _scaleS, f32 _scaleT,
-                     f32 _transS, f32 _transT, GXTexWrapMode _wrapS,
-                     GXTexWrapMode _wrapT, math::VEC2 _scale, f32 _rotate,
+        bool IsEqual(const TextureData* _pData, f32 _scaleS, f32 _scaleT, f32 _transS, f32 _transT,
+                     GXTexWrapMode _wrapS, GXTexWrapMode _wrapT, math::VEC2 _scale, f32 _rotate,
                      math::VEC2 _translate) {
 
-            if (data != _pData || scaleS != _scaleS || scaleT != _scaleT ||
-                transS != _transS || transT != _transT || wrapS != _wrapS ||
-                wrapT != _wrapT || scale.x != _scale.x || scale.y != _scale.y ||
-                rotate != _rotate || translate.x != _translate.x ||
-                translate.y != _translate.y) {
+            if (data != _pData || scaleS != _scaleS || scaleT != _scaleT || transS != _transS || transT != _transT ||
+                wrapS != _wrapS || wrapT != _wrapT || scale.x != _scale.x || scale.y != _scale.y || rotate != _rotate ||
+                translate.x != _translate.x || translate.y != _translate.y) {
                 return false;
             }
 
             return true;
         }
 
-        void Set(const TextureData* _pData, f32 _scaleS, f32 _scaleT,
-                 f32 _transS, f32 _transT, GXTexWrapMode _wrapS,
-                 GXTexWrapMode _wrapT, math::VEC2 _scale, f32 _rotate,
-                 math::VEC2 _translate) {
+        void Set(const TextureData* _pData, f32 _scaleS, f32 _scaleT, f32 _transS, f32 _transT, GXTexWrapMode _wrapS,
+                 GXTexWrapMode _wrapT, math::VEC2 _scale, f32 _rotate, math::VEC2 _translate) {
 
             data = _pData;
             scaleS = _scaleS;
@@ -118,28 +111,24 @@ public:
         }
     };
 
-public:
+  public:
     DrawStrategyImpl();
 
-    virtual GetFirstDrawParticleFunc
-    GetGetFirstDrawParticleFunc(int drawOrder); // at 0x10
+    virtual GetFirstDrawParticleFunc GetGetFirstDrawParticleFunc(int drawOrder); // at 0x10
 
-    virtual GetNextDrawParticleFunc
-    GetGetNextDrawParticleFunc(int drawOrder); // at 0x14
+    virtual GetNextDrawParticleFunc GetGetNextDrawParticleFunc(int drawOrder); // at 0x14
 
-protected:
+  protected:
     void DrawStripes(const DrawInfo& info, ParticleManager* manager, bool smooth);
     static void CalcAhead_Stripe(math::VEC3*, AheadContext*, Particle*);
     void InitTexture(const EmitterDrawSetting& rSetting);
     void InitTev(const EmitterDrawSetting& rSetting, const DrawInfo& rInfo);
-    void InitColor(ParticleManager* pManager,
-                   const EmitterDrawSetting& rSetting, const DrawInfo& rInfo);
+    void InitColor(ParticleManager* pManager, const EmitterDrawSetting& rSetting, const DrawInfo& rInfo);
 
-    void SetupGP(Particle* pParticle, const EmitterDrawSetting& rSetting,
-                 const DrawInfo& rInfo, bool first, bool xfDirty);
+    void SetupGP(Particle* pParticle, const EmitterDrawSetting& rSetting, const DrawInfo& rInfo, bool first,
+                 bool xfDirty);
 
-    static void CalcAhead_Speed(math::VEC3* pAxisY, AheadContext* pContext,
-                                Particle* pParticle) {
+    static void CalcAhead_Speed(math::VEC3* pAxisY, AheadContext* pContext, Particle* pParticle) {
 
         pParticle->GetMoveDir(pAxisY);
 
@@ -148,37 +137,28 @@ protected:
         }
     }
 
-    static void CalcAhead_EmitterCenter(math::VEC3* pAxisY,
-                                        AheadContext* pContext,
-                                        Particle* pParticle) {
+    static void CalcAhead_EmitterCenter(math::VEC3* pAxisY, AheadContext* pContext, Particle* pParticle) {
 
-        math::VEC3Sub(pAxisY, &pParticle->mParameter.mPosition,
-                      &pContext->mCommon.mEmitterCenter);
+        math::VEC3Sub(pAxisY, &pParticle->mParameter.mPosition, &pContext->mCommon.mEmitterCenter);
 
         if (!Normalize(pAxisY)) {
             *pAxisY = pContext->mCommon.mEmitterAxisY;
         }
     }
 
-    static void CalcAhead_EmitterDesign(math::VEC3* pAxisY,
-                                        AheadContext* pContext,
-                                        Particle* /* pParticle */) {
+    static void CalcAhead_EmitterDesign(math::VEC3* pAxisY, AheadContext* pContext, Particle* /* pParticle */) {
 
         *pAxisY = pContext->mCommon.mEmitterAxisY;
     }
 
-    static void CalcAhead_Particle(math::VEC3* pAxisY, AheadContext* pContext,
-                                   Particle* pParticle) {
+    static void CalcAhead_Particle(math::VEC3* pAxisY, AheadContext* pContext, Particle* pParticle) {
 
-        Particle* pElder =
-            GetElderDrawParticle(pContext->mCommon.mParticleManager, pParticle);
+        Particle* pElder = GetElderDrawParticle(pContext->mCommon.mParticleManager, pParticle);
 
         if (pElder != NULL) {
-            math::VEC3Sub(pAxisY, &pElder->mParameter.mPosition,
-                          &pParticle->mParameter.mPosition);
+            math::VEC3Sub(pAxisY, &pElder->mParameter.mPosition, &pParticle->mParameter.mPosition);
         } else {
-            math::VEC3Sub(pAxisY, &pParticle->mParameter.mPosition,
-                          &pContext->mCommon.mEmitterCenter);
+            math::VEC3Sub(pAxisY, &pParticle->mParameter.mPosition, &pContext->mCommon.mEmitterCenter);
         }
 
         if (!Normalize(pAxisY)) {
@@ -186,26 +166,20 @@ protected:
         }
     }
 
-    static void CalcAhead_NoDesign(math::VEC3* pAxisY, AheadContext* pContext,
-                                   Particle* /* pParticle */) {
+    static void CalcAhead_NoDesign(math::VEC3* pAxisY, AheadContext* pContext, Particle* /* pParticle */) {
         *pAxisY = math::VEC3(pContext->mNoDesign.mWorldYAxis);
     }
 
-    static void CalcAhead_ParticleBoth(math::VEC3* pAxisY,
-                                       AheadContext* pContext,
-                                       Particle* pParticle) {
+    static void CalcAhead_ParticleBoth(math::VEC3* pAxisY, AheadContext* pContext, Particle* pParticle) {
 
-        Particle* pElder =
-            GetElderDrawParticle(pContext->mCommon.mParticleManager, pParticle);
+        Particle* pElder = GetElderDrawParticle(pContext->mCommon.mParticleManager, pParticle);
 
-        Particle* pYounger = GetYoungerDrawParticle(
-            pContext->mCommon.mParticleManager, pParticle);
+        Particle* pYounger = GetYoungerDrawParticle(pContext->mCommon.mParticleManager, pParticle);
 
         math::VEC3 elderPos(0.0f, 0.0f, 0.0f);
 
         if (pElder != NULL) {
-            math::VEC3Sub(&elderPos, &pElder->mParameter.mPosition,
-                          &pParticle->mParameter.mPosition);
+            math::VEC3Sub(&elderPos, &pElder->mParameter.mPosition, &pParticle->mParameter.mPosition);
 
             if (!Normalize(&elderPos)) {
                 elderPos = math::VEC3(0.0f, 0.0f, 0.0f);
@@ -215,8 +189,7 @@ protected:
         math::VEC3 youngerPos(0.0f, 0.0f, 0.0f);
 
         if (pYounger != NULL) {
-            math::VEC3Sub(&youngerPos, &pYounger->mParameter.mPosition,
-                          &pParticle->mParameter.mPosition);
+            math::VEC3Sub(&youngerPos, &pYounger->mParameter.mPosition, &pParticle->mParameter.mPosition);
 
             if (!Normalize(&youngerPos)) {
                 youngerPos = math::VEC3(0.0f, 0.0f, 0.0f);
@@ -234,52 +207,40 @@ protected:
         return pManager->mActivityList.GetNumActive();
     }
 
-    static Particle* GetElderParticle(ParticleManager* pManager,
-                                      Particle* pParticle) {
+    static Particle* GetElderParticle(ParticleManager* pManager, Particle* pParticle) {
 
         return static_cast<Particle*>(
-            NW4R_UT_LIST_GET_LINK(pManager->mActivityList.mActiveList,
-                                  pParticle)
-                ->prevObject);
+            NW4R_UT_LIST_GET_LINK(pManager->mActivityList.mActiveList, pParticle)->prevObject);
     }
-    static Particle* GetYoungerParticle(ParticleManager* pManager,
-                                        Particle* pParticle) {
+    static Particle* GetYoungerParticle(ParticleManager* pManager, Particle* pParticle) {
 
         return static_cast<Particle*>(
-            NW4R_UT_LIST_GET_LINK(pManager->mActivityList.mActiveList,
-                                  pParticle)
-                ->nextObject);
+            NW4R_UT_LIST_GET_LINK(pManager->mActivityList.mActiveList, pParticle)->nextObject);
     }
 
     static Particle* GetOldestParticle(ParticleManager* pManager) {
-        return static_cast<Particle*>(
-            pManager->mActivityList.mActiveList.headObject);
+        return static_cast<Particle*>(pManager->mActivityList.mActiveList.headObject);
     }
     static Particle* GetYoungestParticle(ParticleManager* pManager) {
-        return static_cast<Particle*>(
-            pManager->mActivityList.mActiveList.tailObject);
+        return static_cast<Particle*>(pManager->mActivityList.mActiveList.tailObject);
     }
 
-    static Particle* GetElderDrawParticle(ParticleManager* pManager,
-                                          Particle* pParticle) {
+    static Particle* GetElderDrawParticle(ParticleManager* pManager, Particle* pParticle) {
 
         Particle* pIt = GetElderParticle(pManager, pParticle);
 
-        while (pIt != NULL &&
-               pIt->GetLifeStatus() != ReferencedObject::NW4R_EF_LS_ACTIVE) {
+        while (pIt != NULL && pIt->GetLifeStatus() != ReferencedObject::NW4R_EF_LS_ACTIVE) {
 
             pIt = GetElderParticle(pManager, pIt);
         }
 
         return pIt;
     }
-    static Particle* GetYoungerDrawParticle(ParticleManager* pManager,
-                                            Particle* pParticle) {
+    static Particle* GetYoungerDrawParticle(ParticleManager* pManager, Particle* pParticle) {
 
         Particle* pIt = GetYoungerParticle(pManager, pParticle);
 
-        while (pIt != NULL &&
-               pIt->GetLifeStatus() != ReferencedObject::NW4R_EF_LS_ACTIVE) {
+        while (pIt != NULL && pIt->GetLifeStatus() != ReferencedObject::NW4R_EF_LS_ACTIVE) {
 
             pIt = GetYoungerParticle(pManager, pIt);
         }
@@ -290,8 +251,7 @@ protected:
     static Particle* GetOldestDrawParticle(ParticleManager* pManager) {
         Particle* pIt = GetOldestParticle(pManager);
 
-        while (pIt != NULL &&
-               pIt->GetLifeStatus() != ReferencedObject::NW4R_EF_LS_ACTIVE) {
+        while (pIt != NULL && pIt->GetLifeStatus() != ReferencedObject::NW4R_EF_LS_ACTIVE) {
 
             pIt = GetYoungerParticle(pManager, pIt);
         }
@@ -301,8 +261,7 @@ protected:
     static Particle* GetYoungestDrawParticle(ParticleManager* pManager) {
         Particle* pIt = GetYoungestParticle(pManager);
 
-        while (pIt != NULL &&
-               pIt->GetLifeStatus() != ReferencedObject::NW4R_EF_LS_ACTIVE) {
+        while (pIt != NULL && pIt->GetLifeStatus() != ReferencedObject::NW4R_EF_LS_ACTIVE) {
 
             pIt = GetElderDrawParticle(pManager, pIt);
         }
@@ -331,28 +290,20 @@ protected:
         return mZUnitVec;
     }
 
-private:
-    bool _SetupACmp(Particle* pParticle, const EmitterDrawSetting& rSetting,
-                    bool first);
-    bool _SetupTevReg(Particle* pParticle, const EmitterDrawSetting& rSetting,
-                      bool first);
-    bool _SetupTexture(Particle* pParticle, const EmitterDrawSetting& rSetting,
-                       const DrawInfo& rInfo, bool first);
+  private:
+    bool _SetupACmp(Particle* pParticle, const EmitterDrawSetting& rSetting, bool first);
+    bool _SetupTevReg(Particle* pParticle, const EmitterDrawSetting& rSetting, bool first);
+    bool _SetupTexture(Particle* pParticle, const EmitterDrawSetting& rSetting, const DrawInfo& rInfo, bool first);
 
-    static Particle*
-    GetFirstDrawParticle_EldersFirst(ParticleManager* pManager);
+    static Particle* GetFirstDrawParticle_EldersFirst(ParticleManager* pManager);
 
-    static Particle*
-    GetFirstDrawParticle_YoungersFirst(ParticleManager* pManager);
+    static Particle* GetFirstDrawParticle_YoungersFirst(ParticleManager* pManager);
 
-    static Particle* GetNextDrawParticle_EldersFirst(ParticleManager* pManager,
-                                                     Particle* pParticle);
+    static Particle* GetNextDrawParticle_EldersFirst(ParticleManager* pManager, Particle* pParticle);
 
-    static Particle*
-    GetNextDrawParticle_YoungersFirst(ParticleManager* pManager,
-                                      Particle* pParticle);
+    static Particle* GetNextDrawParticle_YoungersFirst(ParticleManager* pManager, Particle* pParticle);
 
-protected:
+  protected:
     PrevTexture mPrevTexture[TEX_LAYER_MAX];            // at 0x4
     GXColor mPrevColor[COLOR_LAYER_MAX][COLOR_IDX_MAX]; // at 0x94
     int mPrevARef0;                                     // at 0xA4

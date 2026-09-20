@@ -6,10 +6,10 @@ namespace nw4r {
 namespace ef {
 
 class Random {
-private:
+  private:
     u32 mSeed; // at 0x0
 
-public:
+  public:
     void Srand(u32 seed) {
         mSeed = seed;
     }
@@ -24,7 +24,7 @@ public:
         return static_cast<f32>(mSeed >> 16) / 0x10000;
     }
 
-private:
+  private:
     void MixRandomSeed() {
         mSeed = mSeed * 0x343FD + 0x269EC3;
     }

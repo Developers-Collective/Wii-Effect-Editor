@@ -5,18 +5,20 @@
 namespace nw4r {
 namespace ef {
 
-Particle::Particle() {}
+Particle::Particle() {
+}
 
-Particle::~Particle() {}
+Particle::~Particle() {
+}
 
 void Particle::SendClosing() {
     mParticleManager->Closing(this);
 }
 
-void Particle::DestroyFunc() {}
+void Particle::DestroyFunc() {
+}
 
-void ParticleParameter::Initialize(ParticleParameterDesc* pDesc,
-                                   ParticleManager* pManager) {
+void ParticleParameter::Initialize(ParticleParameterDesc* pDesc, ParticleManager* pManager) {
 
     int i, j;
 
@@ -56,9 +58,8 @@ void ParticleParameter::Initialize(ParticleParameterDesc* pDesc,
     mACmpRef1 = pDesc->mACmpRef1;
 }
 
-bool Particle::Initialize(u16 life, math::VEC3 pos, math::VEC3 vel,
-                          ParticleManager* pManager, const math::MTX34* pSpace,
-                          float momentum, const EmitterInheritSetting* pSetting,
+bool Particle::Initialize(u16 life, math::VEC3 pos, math::VEC3 vel, ParticleManager* pManager,
+                          const math::MTX34* pSpace, float momentum, const EmitterInheritSetting* pSetting,
                           Particle* pReferencePtcl) {
 
     ReferencedObject::Initialize();
@@ -76,8 +77,7 @@ bool Particle::Initialize(u16 life, math::VEC3 pos, math::VEC3 vel,
     (void)Resource::GetInstance(); // unused
 
     EmitterDesc* pEmitDesc = pManager->mResource->GetEmitterDesc();
-    ParticleParameterDesc* pPtclDesc =
-        pManager->mResource->GetParticleParameterDesc();
+    ParticleParameterDesc* pPtclDesc = pManager->mResource->GetParticleParameterDesc();
 
     mParameter.Initialize(pPtclDesc, pManager);
     mParameter.mMomentum = momentum;
@@ -85,8 +85,7 @@ bool Particle::Initialize(u16 life, math::VEC3 pos, math::VEC3 vel,
     mTick = 0;
     mRandSeed = pManager->mManagerEM->mRandom.Rand();
     mLife = life;
-    mParameter.mAlphaFlickRnd =
-        (pManager->mManagerEM->mRandom.Rand() % 254) - 127;
+    mParameter.mAlphaFlickRnd = (pManager->mManagerEM->mRandom.Rand() % 254) - 127;
 
     mParameter.mPosition = pos;
     mParameter.mPrevPosition = mParameter.mPosition;
@@ -107,14 +106,12 @@ bool Particle::Initialize(u16 life, math::VEC3 pos, math::VEC3 vel,
     }
 
     if (pSpace != NULL) {
-        math::VEC3Transform(&mParameter.mPosition, pSpace,
-                            &mParameter.mPosition);
+        math::VEC3Transform(&mParameter.mPosition, pSpace, &mParameter.mPosition);
 
         math::MTX34 spaceProj(*pSpace);
         spaceProj._03 = spaceProj._13 = spaceProj._23 = 0.0f;
 
-        math::VEC3Transform(&mParameter.mVelocity, &spaceProj,
-                            &mParameter.mVelocity);
+        math::VEC3Transform(&mParameter.mVelocity, &spaceProj, &mParameter.mVelocity);
     }
 
     mPrevAxis = math::VEC3(2.0f, 0.0f, 0.0f);
@@ -126,29 +123,21 @@ bool Particle::Initialize(u16 life, math::VEC3 pos, math::VEC3 vel,
 
             pReferencePtcl->mParticleManager->CalcGlobalMtx(&glbMtx);
             glbMtx._03 = glbMtx._13 = glbMtx._23 = 0.0f;
-            math::VEC3Transform(&glbSpeed, &glbMtx,
-                                &pReferencePtcl->mParameter.mVelocity);
+            math::VEC3Transform(&glbSpeed, &glbMtx, &pReferencePtcl->mParameter.mVelocity);
 
             mParticleManager->CalcGlobalMtx(&glbMtx);
             glbMtx._03 = glbMtx._13 = glbMtx._23 = 0.0f;
             math::MTX34Inv(&glbMtx, &glbMtx);
             math::VEC3Transform(&glbSpeed, &glbMtx, &glbSpeed);
 
-            mParameter.mVelocity.x +=
-                glbSpeed.x * pSetting->speed * (1.0f / 100.0f);
-            mParameter.mVelocity.y +=
-                glbSpeed.y * pSetting->speed * (1.0f / 100.0f);
-            mParameter.mVelocity.z +=
-                glbSpeed.z * pSetting->speed * (1.0f / 100.0f);
+            mParameter.mVelocity.x += glbSpeed.x * pSetting->speed * (1.0f / 100.0f);
+            mParameter.mVelocity.y += glbSpeed.y * pSetting->speed * (1.0f / 100.0f);
+            mParameter.mVelocity.z += glbSpeed.z * pSetting->speed * (1.0f / 100.0f);
         }
 
         if (pSetting->scale != 0) {
-            mParameter.mSize.x = pSetting->scale *
-                                 pReferencePtcl->Draw_GetSizeX() *
-                                 (1.0f / 100.0f);
-            mParameter.mSize.y = pSetting->scale *
-                                 pReferencePtcl->Draw_GetSizeY() *
-                                 (1.0f / 100.0f);
+            mParameter.mSize.x = pSetting->scale * pReferencePtcl->Draw_GetSizeX() * (1.0f / 100.0f);
+            mParameter.mSize.y = pSetting->scale * pReferencePtcl->Draw_GetSizeY() * (1.0f / 100.0f);
         }
 
         if (pSetting->alpha != 0) {
@@ -183,18 +172,15 @@ bool Particle::Initialize(u16 life, math::VEC3 pos, math::VEC3 vel,
             f32 rad;
 
             rad = pReferencePtcl->mParameter.mRotate.x;
-            rad += NW4R_MATH_FIDX_TO_RAD(
-                pReferencePtcl->mParameter.mRotateOffset[AXIS_X]);
+            rad += NW4R_MATH_FIDX_TO_RAD(pReferencePtcl->mParameter.mRotateOffset[AXIS_X]);
             mParameter.mRotateOffset[AXIS_X] = ConvertF32RadToU8(rad);
 
             rad = pReferencePtcl->mParameter.mRotate.y;
-            rad += NW4R_MATH_FIDX_TO_RAD(
-                pReferencePtcl->mParameter.mRotateOffset[AXIS_Y]);
+            rad += NW4R_MATH_FIDX_TO_RAD(pReferencePtcl->mParameter.mRotateOffset[AXIS_Y]);
             mParameter.mRotateOffset[AXIS_Y] = ConvertF32RadToU8(rad);
 
             rad = pReferencePtcl->mParameter.mRotate.z;
-            rad += NW4R_MATH_FIDX_TO_RAD(
-                pReferencePtcl->mParameter.mRotateOffset[AXIS_Z]);
+            rad += NW4R_MATH_FIDX_TO_RAD(pReferencePtcl->mParameter.mRotateOffset[AXIS_Z]);
             mParameter.mRotateOffset[AXIS_Z] = ConvertF32RadToU8(rad);
         }
     }
@@ -202,8 +188,7 @@ bool Particle::Initialize(u16 life, math::VEC3 pos, math::VEC3 vel,
     return true;
 }
 
-void Particle::Draw_GetColor(int layer, GXColor* pColorPri,
-                             GXColor* pColorSec) {
+void Particle::Draw_GetColor(int layer, GXColor* pColorPri, GXColor* pColorSec) {
 
     const EmitterDesc* pDesc = mParticleManager->mResource->GetEmitterDesc();
     const EmitterDrawSetting& rSetting = pDesc->drawSetting;
@@ -218,8 +203,7 @@ void Particle::Draw_GetColor(int layer, GXColor* pColorPri,
 
     if (rSetting.mAlphaFlickType != EmitterDrawSetting::ALPHAFLICK_NONE) {
         cycleL = rSetting.mAlphaFlickCycle +
-                 rSetting.mAlphaFlickCycle * mParameter.mAlphaFlickRnd *
-                     rSetting.mAlphaFlickRandom / 12700;
+                 rSetting.mAlphaFlickCycle * mParameter.mAlphaFlickRnd * rSetting.mAlphaFlickRandom / 12700;
 
         if (cycleL <= 0xFFFF) {
             cycle = cycleL;
@@ -233,24 +217,20 @@ void Particle::Draw_GetColor(int layer, GXColor* pColorPri,
         switch (rSetting.mAlphaFlickType) {
         case EmitterDrawSetting::ALPHAFLICK_TRIANGLE: {
             if (pos * 2 <= cycle) {
-                alpha = 128 - rSetting.mAlphaFlickAmplitude +
-                        rSetting.mAlphaFlickAmplitude * (pos * 4) / cycle;
+                alpha = 128 - rSetting.mAlphaFlickAmplitude + rSetting.mAlphaFlickAmplitude * (pos * 4) / cycle;
             } else {
-                alpha = 128 + rSetting.mAlphaFlickAmplitude * 3 +
-                        -(rSetting.mAlphaFlickAmplitude * pos * 4) / cycle;
+                alpha = 128 + rSetting.mAlphaFlickAmplitude * 3 + -(rSetting.mAlphaFlickAmplitude * pos * 4) / cycle;
             }
             break;
         }
 
         case EmitterDrawSetting::ALPHAFLICK_SAWTOOTH1: {
-            alpha = 128 + rSetting.mAlphaFlickAmplitude +
-                    -(rSetting.mAlphaFlickAmplitude * pos * 2) / cycle;
+            alpha = 128 + rSetting.mAlphaFlickAmplitude + -(rSetting.mAlphaFlickAmplitude * pos * 2) / cycle;
             break;
         }
 
         case EmitterDrawSetting::ALPHAFLICK_SAWTOOTH2: {
-            alpha = 128 - rSetting.mAlphaFlickAmplitude +
-                    rSetting.mAlphaFlickAmplitude * (pos * 2) / cycle;
+            alpha = 128 - rSetting.mAlphaFlickAmplitude + rSetting.mAlphaFlickAmplitude * (pos * 2) / cycle;
             break;
         }
 
@@ -264,8 +244,7 @@ void Particle::Draw_GetColor(int layer, GXColor* pColorPri,
         }
 
         case EmitterDrawSetting::ALPHAFLICK_SINE: {
-            alpha = 128 + rSetting.mAlphaFlickAmplitude *
-                              std::sin(static_cast<f32>(2 * NW4R_MATH_PI * pos / cycle));
+            alpha = 128 + rSetting.mAlphaFlickAmplitude * std::sin(static_cast<f32>(2 * NW4R_MATH_PI * pos / cycle));
             break;
         }
 

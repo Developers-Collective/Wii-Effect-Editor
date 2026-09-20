@@ -8,14 +8,13 @@ namespace nw4r {
 namespace ef {
 
 class DrawStripeStrategy : public DrawStrategyImpl {
-public:
+  public:
     DrawStripeStrategy();
 
     virtual void Draw(const DrawInfo& rInfo,
                       ParticleManager* pManager); // at 0xC
 
-    virtual CalcAheadFunc
-    GetCalcAheadFunc(ParticleManager* pManager); // at 0x18
+    virtual CalcAheadFunc GetCalcAheadFunc(ParticleManager* pManager); // at 0x18
 };
 
 } // namespace ef

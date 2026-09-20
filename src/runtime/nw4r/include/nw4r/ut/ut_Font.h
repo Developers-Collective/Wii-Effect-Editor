@@ -41,12 +41,14 @@ struct Glyph {
  *
  ******************************************************************************/
 class Font {
-public:
+  public:
     enum Type { TYPE_NULL, TYPE_ROM, TYPE_RESOURCE, TYPE_PAIR };
 
-public:
-    Font() : mReadFunc(&CharStrmReader::ReadNextCharCP1252) {}
-    virtual ~Font() {} // at 0x8
+  public:
+    Font() : mReadFunc(&CharStrmReader::ReadNextCharCP1252) {
+    }
+    virtual ~Font() {
+    } // at 0x8
 
     virtual int GetWidth() const = 0;  // at 0xC
     virtual int GetHeight() const = 0; // at 0x10
@@ -80,7 +82,7 @@ public:
         return CharStrmReader(mReadFunc);
     }
 
-private:
+  private:
     CharStrmReader::ReadFunc mReadFunc; // at 0x4
 };
 

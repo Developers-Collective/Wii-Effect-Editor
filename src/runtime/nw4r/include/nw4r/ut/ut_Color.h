@@ -8,7 +8,7 @@ namespace nw4r {
 namespace ut {
 
 struct Color : public GXColor {
-public:
+  public:
     Color() {
         *this = WHITE;
     }
@@ -22,7 +22,8 @@ public:
         *this = rColor;
     }
 
-    ~Color() {}
+    ~Color() {
+    }
 
     void Set(int red, int green, int blue, int alpha) {
         r = red;

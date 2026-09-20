@@ -51,10 +51,8 @@ class NW4R_EF_MEMORY_MANAGER_CLASS : public ::nw4r::ef::MemoryManagerBase {
     MemInfo* mFreeMemTail; // at 0x44
     MemInfo* mAllChain;    // at 0x48
 
-public:
-    static u32 CalcMemorySize(u16 maxEffect, u16 maxEmitter,
-                              u16 maxParticleManager, u16 maxParticle,
-                              u32 maxGroupID) {
+  public:
+    static u32 CalcMemorySize(u16 maxEffect, u16 maxEmitter, u16 maxParticleManager, u16 maxParticle, u32 maxGroupID) {
         // clang-format off
         return ROUND_UP(sizeof(MemInfo), 32) + ::nw4r::ut::RoundUp<u32>(maxEffect * sizeof(TEffect) + 32, 32) +
                ROUND_UP(sizeof(MemInfo), 32) + ::nw4r::ut::RoundUp<u32>(maxEmitter * sizeof(TEmitter) + 32, 32) +
@@ -68,8 +66,7 @@ public:
         // clang-format on
     }
 
-    NW4R_EF_MEMORY_MANAGER_CLASS(void* pStartAddr, u32 size, int maxEffect,
-                                 int maxEmitter, int maxParticleManager,
+    NW4R_EF_MEMORY_MANAGER_CLASS(void* pStartAddr, u32 size, int maxEffect, int maxEmitter, int maxParticleManager,
                                  int maxParticle) {
 
         u32 headerSize = ::nw4r::ut::RoundUp(sizeof(MemInfo), 32);
@@ -95,8 +92,7 @@ public:
         mAllChain = NULL;
 
         mHeapEndAddr = static_cast<u8*>(pStartAddr) + size;
-        mHeapStartAddr = reinterpret_cast<u8*>(
-            ::nw4r::ut::RoundUp(reinterpret_cast<uintptr_t>(pStartAddr), 32));
+        mHeapStartAddr = reinterpret_cast<u8*>(::nw4r::ut::RoundUp(reinterpret_cast<uintptr_t>(pStartAddr), 32));
 
         mLeastEffect = maxEffect;
         mLeastEmitter = maxEmitter;
@@ -114,8 +110,7 @@ public:
         mFreeMem->chainPrev = NULL;
         mFreeMem->chainNext = NULL;
         mFreeMem->active = false;
-        mFreeMem->size = static_cast<u8*>(mHeapEndAddr) -
-                         static_cast<u8*>(mHeapStartAddr) - headerSize;
+        mFreeMem->size = static_cast<u8*>(mHeapEndAddr) - static_cast<u8*>(mHeapStartAddr) - headerSize;
 
         mAllChain = mFreeMem;
         mActiveMem = NULL;
@@ -163,24 +158,22 @@ public:
         // clang-format on
     }
 
-    virtual ~NW4R_EF_MEMORY_MANAGER_CLASS() {} // at 0x8
+    virtual ~NW4R_EF_MEMORY_MANAGER_CLASS() {
+    } // at 0x8
 
     virtual void GarbageCollection() {
-        void* pPtr =
-            ::nw4r::ut::List_GetFirst(&mParticleManagerOM->mLeasedList);
+        void* pPtr = ::nw4r::ut::List_GetFirst(&mParticleManagerOM->mLeasedList);
 
         while (pPtr != NULL) {
-            void* pNext = ::nw4r::ut::List_GetNext(
-                &mParticleManagerOM->mLeasedList, pPtr);
+            void* pNext = ::nw4r::ut::List_GetNext(&mParticleManagerOM->mLeasedList, pPtr);
 
             TParticleManager* mMgr = static_cast<TParticleManager*>(pPtr);
 
             TParticle* pPtcl;
             TParticle* pNextPtcl;
 
-            for (pPtcl = static_cast<TParticle*>(
-                     mMgr->mActivityList.mClosingList.headObject);
-                 pPtcl != NULL; pPtcl = pNextPtcl) {
+            for (pPtcl = static_cast<TParticle*>(mMgr->mActivityList.mClosingList.headObject); pPtcl != NULL;
+                 pPtcl = pNextPtcl) {
 
                 // clang-format off
                 pNextPtcl = static_cast<TParticle*>(
@@ -389,8 +382,7 @@ public:
                 pIt->active = true;
                 mActiveMem = pIt;
             } else {
-                MemInfo* pNewFree = reinterpret_cast<MemInfo*>(
-                    (reinterpret_cast<u8*>(pIt) + headerSize + size));
+                MemInfo* pNewFree = reinterpret_cast<MemInfo*>((reinterpret_cast<u8*>(pIt) + headerSize + size));
 
                 pNewFree->prev = pIt->prev;
                 pNewFree->next = pIt->next;
@@ -435,8 +427,7 @@ public:
     virtual void FreeHeap(void* pPtr) {
         u32 headerSize = ::nw4r::ut::RoundUp(sizeof(MemInfo), 32);
 
-        MemInfo* pInfo =
-            reinterpret_cast<MemInfo*>(static_cast<u8*>(pPtr) - headerSize);
+        MemInfo* pInfo = reinterpret_cast<MemInfo*>(static_cast<u8*>(pPtr) - headerSize);
 
         if (pInfo->prev != NULL) {
             pInfo->prev->next = pInfo->next;
@@ -470,8 +461,7 @@ public:
                     pNext->next->prev = pNext->prev;
                 }
 
-                pPrev->size +=
-                    pNext->size + pInfo->size + headerSize + headerSize;
+                pPrev->size += pNext->size + pInfo->size + headerSize + headerSize;
 
                 pPrev->chainNext = pNext->chainNext;
 

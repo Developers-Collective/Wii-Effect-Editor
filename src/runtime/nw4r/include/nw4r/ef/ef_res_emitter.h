@@ -47,15 +47,7 @@ struct BlendMode {
 };
 
 struct ColorInput {
-    enum TevColor {
-        TEVCOLOR_NULL,
-        TEVCOLOR1_1,
-        TEVCOLOR1_2,
-        TEVCOLOR2_3,
-        TEVCOLOR2_2,
-        TEVCOLOR1_MULT,
-        TEVCOLOR2_MULT
-    };
+    enum TevColor { TEVCOLOR_NULL, TEVCOLOR1_1, TEVCOLOR1_2, TEVCOLOR2_3, TEVCOLOR2_2, TEVCOLOR1_MULT, TEVCOLOR2_MULT };
 
     enum RasColor {
         RASCOLOR_NULL,
@@ -70,17 +62,9 @@ struct ColorInput {
 // TODO(kiwi) Why?
 #pragma pack(push, 1)
 struct Lighting {
-    enum Mode {
-        LIGHTING_MODE_OFF,
-        LIGHTING_MODE_SIMPLE,
-        LIGHTING_MODE_HARDWARE
-    };
+    enum Mode { LIGHTING_MODE_OFF, LIGHTING_MODE_SIMPLE, LIGHTING_MODE_HARDWARE };
 
-    enum Type {
-        LIGHTING_TYPE_NONE,
-        LIGHTING_TYPE_AMBIENT,
-        LIGHTING_TYPE_POINT
-    };
+    enum Type { LIGHTING_TYPE_NONE, LIGHTING_TYPE_AMBIENT, LIGHTING_TYPE_POINT };
 
     u8 mMode;             // at 0x0
     u8 mType;             // at 0x1
@@ -162,7 +146,7 @@ struct EmitterDrawSetting {
     u8 mNumTevs;                    // at 0x5
     u8 mFlagClamp;                  // at 0x6
     u8 mIndirectTargetStage;        // at 0x7
-    u8 mTevTexture[4]; // v11 stage texture selection
+    u8 mTevTexture[4];              // v11 stage texture selection
     TevStageColor mTevColor[4];     // at 0x8
     TevStageColorOp mTevColorOp[4]; // at 0x18
     TevStageAlpha mTevAlpha[4];     // at 0x2C
@@ -171,7 +155,7 @@ struct EmitterDrawSetting {
     u8 mTevKAlphaSel[4];            // at 0x54
     BlendMode mBlendMode;           // at 0x58
     ColorInput mColorInput;         // at 0x5C
-    ColorInput mAlphaInput; // v11 separates color and alpha sources
+    ColorInput mAlphaInput;         // v11 separates color and alpha sources
     u8 mZCompareFunc;               // at 0x64
     u8 mAlphaFlickType;             // at 0x65
     u16 mAlphaFlickCycle;           // at 0x66
@@ -271,25 +255,47 @@ struct EmitterResource {
     ParticleParameterDesc* particle = nullptr;
     std::vector<std::vector<u8>> particleTracks, emitterTracks;
     u16 particleInitTracks = 0, emitterInitTracks = 0;
-    EmitterDesc* GetEmitterDesc() { return &emitter; }
-    EmitterDrawSetting* GetEmitterDrawSetting() { return &emitter.drawSetting; }
-    const char* GetName() const { return name.c_str(); }
-    ParticleParameterDesc* GetParticleParameterDesc() { return particle; }
-    u16 NumPtclTrack() { return static_cast<u16>(particleTracks.size()); }
-    u16 NumPtclInitTrack() { return particleInitTracks; }
-    u16 NumEmitTrack() { return static_cast<u16>(emitterTracks.size()); }
-    u16 NumEmitInitTrack() { return emitterInitTracks; }
-    u8* GetPtclTrack(u16 i) { return particleTracks.at(i).data(); }
-    u8* GetEmitTrack(u16 i) { return emitterTracks.at(i).data(); }
+    EmitterDesc* GetEmitterDesc() {
+        return &emitter;
+    }
+    EmitterDrawSetting* GetEmitterDrawSetting() {
+        return &emitter.drawSetting;
+    }
+    const char* GetName() const {
+        return name.c_str();
+    }
+    ParticleParameterDesc* GetParticleParameterDesc() {
+        return particle;
+    }
+    u16 NumPtclTrack() {
+        return static_cast<u16>(particleTracks.size());
+    }
+    u16 NumPtclInitTrack() {
+        return particleInitTracks;
+    }
+    u16 NumEmitTrack() {
+        return static_cast<u16>(emitterTracks.size());
+    }
+    u16 NumEmitInitTrack() {
+        return emitterInitTracks;
+    }
+    u8* GetPtclTrack(u16 i) {
+        return particleTracks.at(i).data();
+    }
+    u8* GetEmitTrack(u16 i) {
+        return emitterTracks.at(i).data();
+    }
 };
 
 class ResEmitter {
-private:
+  private:
     EmitterResource* mData; // at 0x0
 
-public:
-    explicit ResEmitter(EmitterResource* pData = NULL) : mData(pData) {}
-    ResEmitter(const ResEmitter& rOther) : mData(rOther.mData) {}
+  public:
+    explicit ResEmitter(EmitterResource* pData = NULL) : mData(pData) {
+    }
+    ResEmitter(const ResEmitter& rOther) : mData(rOther.mData) {
+    }
 
     bool IsValid() const {
         return mData != NULL;

@@ -55,8 +55,7 @@ inline uintptr_t GetIntPtr(const void* pPtr) {
     return reinterpret_cast<uintptr_t>(pPtr);
 }
 
-template <typename T>
-inline const void* AddOffsetToPtr(const void* pBase, T offset) {
+template <typename T> inline const void* AddOffsetToPtr(const void* pBase, T offset) {
     return reinterpret_cast<const void*>(GetIntPtr(pBase) + offset);
 }
 template <typename T> inline void* AddOffsetToPtr(void* pBase, T offset) {

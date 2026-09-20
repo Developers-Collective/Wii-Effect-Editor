@@ -13,8 +13,9 @@ class ParticleManager;
 class DrawInfo;
 
 class DrawOrderBase {
-public:
-    DrawOrderBase() {}
+  public:
+    DrawOrderBase() {
+    }
 
     virtual void Add(Effect* pEffect, ParticleManager* pManager) = 0; // at 0x8
     virtual void Remove(Effect* pEffect,
@@ -25,7 +26,7 @@ public:
 };
 
 class DrawOrder : public DrawOrderBase {
-public:
+  public:
     virtual void Add(Effect* pEffect, ParticleManager* pManager); // at 0x8
     virtual void Remove(Effect* pEffect,
                         ParticleManager* pManager);            // at 0xC

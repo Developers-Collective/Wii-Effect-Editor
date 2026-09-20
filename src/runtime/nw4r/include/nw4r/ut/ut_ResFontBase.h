@@ -7,11 +7,7 @@
 namespace nw4r {
 namespace ut {
 
-enum FontMapMethod {
-    FONT_MAPMETHOD_DIRECT,
-    FONT_MAPMETHOD_TABLE,
-    FONT_MAPMETHOD_SCAN
-};
+enum FontMapMethod { FONT_MAPMETHOD_DIRECT, FONT_MAPMETHOD_TABLE, FONT_MAPMETHOD_SCAN };
 
 struct FontTextureGlyph {
     u8 cellWidth;    // at 0x0
@@ -66,10 +62,10 @@ namespace detail {
  *
  ******************************************************************************/
 class ResFontBase : public Font {
-public:
+  public:
     static const u16 GLYPH_INDEX_NOT_FOUND = 0xFFFF;
 
-public:
+  public:
     ResFontBase();
     virtual ~ResFontBase(); // at 0x8
 
@@ -103,22 +99,21 @@ public:
         return mResource == pBuffer;
     }
 
-protected:
+  protected:
     void SetResourceBuffer(void* pBuffer, FontInformation* pInfo);
 
-private:
+  private:
     u16 GetGlyphIndex(u16 ch) const;
 
     u16 FindGlyphIndex(u16 ch) const;
     u16 FindGlyphIndex(const FontCodeMap* pMap, u16 ch) const;
 
     const CharWidths& GetCharWidthsFromIndex(u16 index) const;
-    const CharWidths& GetCharWidthsFromIndex(const FontWidth* pWidth,
-                                             u16 index) const;
+    const CharWidths& GetCharWidthsFromIndex(const FontWidth* pWidth, u16 index) const;
 
     void GetGlyphFromIndex(Glyph* pGlyph, u16 index) const;
 
-private:
+  private:
     void* mResource;            // at 0x10
     FontInformation* mFontInfo; // at 0x14
 };

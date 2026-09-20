@@ -8,7 +8,6 @@
 #include <map>
 #include <string>
 
-
 namespace nw4r {
 namespace ef {
 
@@ -32,18 +31,18 @@ struct TextureProject {
 };
 
 class Resource {
-private:
+  private:
     static const u16 VERSION = 11;
-    std::map<std::string,EmitterResource*> nativeEmitters;
-    std::map<std::string,TextureData*> nativeTextures;
+    std::map<std::string, EmitterResource*> nativeEmitters;
+    std::map<std::string, TextureData*> nativeTextures;
 
-public:
+  public:
     ut::List mBREFFList; // at 0x0
     u32 mNumEmitter;     // at 0xC
     ut::List mBREFTList; // at 0x10
     u32 mNumTexture;     // at 0x1C
 
-public:
+  public:
     static u16 GetVersion() {
         return VERSION;
     }
@@ -51,37 +50,39 @@ public:
     static Resource* GetInstance();
 
     void Initialize();
-    void Register(const std::string& name,EmitterResource* resource) { nativeEmitters[name]=resource; mNumEmitter=nativeEmitters.size(); }
-    void Register(const std::string& name,TextureData* resource) { nativeTextures[name]=resource; mNumTexture=nativeTextures.size(); }
+    void Register(const std::string& name, EmitterResource* resource) {
+        nativeEmitters[name] = resource;
+        mNumEmitter = nativeEmitters.size();
+    }
+    void Register(const std::string& name, TextureData* resource) {
+        nativeTextures[name] = resource;
+        mNumTexture = nativeTextures.size();
+    }
 
     EffectProject* Add(u8* pData);
     TextureProject* AddTexture(u8* pData);
 
     ResEmitter FindEmitter(const char* pName, EffectProject* pEffProject) const;
-    EmitterResource* _FindEmitter(const char* pName,
-                                  EffectProject* pEffProject) const;
+    EmitterResource* _FindEmitter(const char* pName, EffectProject* pEffProject) const;
 
     u32 NumEmitter(EffectProject* pEffProject) const;
-    EmitterResource* _GetEmitterIndexOf(u32 idx,
-                                        EffectProject* pEffProject) const;
+    EmitterResource* _GetEmitterIndexOf(u32 idx, EffectProject* pEffProject) const;
 
-    ResTexture FindTexture(const char* pName,
-                           TextureProject* pTexProject) const;
-    TextureData* _FindTexture(const char* pName,
-                              TextureProject* pTexProject) const;
+    ResTexture FindTexture(const char* pName, TextureProject* pTexProject) const;
+    TextureData* _FindTexture(const char* pName, TextureProject* pTexProject) const;
 
     u32 RelocateCommand();
 
     bool RemoveEffectProject(EffectProject* pEffProject);
     bool RemoveTextureProject(TextureProject* pTexProject);
 
-private:
+  private:
     Resource();
 
     u32 relocateCurveTexture(u8* pCmdList);
     u32 relocateCurveChild(u8* pCmdList);
 
-private:
+  private:
     static Resource mResource;
 };
 

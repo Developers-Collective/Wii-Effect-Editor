@@ -32,7 +32,7 @@ template <typename T> struct PrintContext {
  *
  ******************************************************************************/
 template <typename T> class TagProcessorBase {
-public:
+  public:
     typedef PrintContext<T> ContextType;
 
     enum Operation {
@@ -43,7 +43,7 @@ public:
         OPERATION_END_DRAW
     };
 
-public:
+  public:
     TagProcessorBase();
     virtual ~TagProcessorBase(); // at 0x8
 
@@ -51,7 +51,7 @@ public:
     virtual Operation CalcRect(Rect* pRect, u16 ch,
                                ContextType* pCtx); // at 0x10
 
-private:
+  private:
     void ProcessTab(ContextType* pCtx);
     void ProcessLinefeed(ContextType* pCtx);
 };

@@ -6,26 +6,20 @@
 namespace nw4r {
 namespace ef {
 
-static math::MTX34 CalcLocalTransform(f32 px, f32 py, f32 sx, f32 sy,
-                                      const nw4r::math::MTX34& rRot);
+static math::MTX34 CalcLocalTransform(f32 px, f32 py, f32 sx, f32 sy, const nw4r::math::MTX34& rRot);
 
 static math::MTX34 CalcRotate(Particle* pParticle, u8 axis);
 
 static u8 free_tex0_u8[] = {0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01};
 
-static void DrawQuad(const math::MTX34& rMtx, const math::_VEC3* pPosArray,
-                     bool texCoord) {
+static void DrawQuad(const math::MTX34& rMtx, const math::_VEC3* pPosArray, bool texCoord) {
 
     math::VEC3 p0, p1, p2, p3;
 
-    math::VEC3Transform(&p0, &rMtx,
-                        static_cast<const math::VEC3*>(&pPosArray[0]));
-    math::VEC3Transform(&p1, &rMtx,
-                        static_cast<const math::VEC3*>(&pPosArray[1]));
-    math::VEC3Transform(&p2, &rMtx,
-                        static_cast<const math::VEC3*>(&pPosArray[2]));
-    math::VEC3Transform(&p3, &rMtx,
-                        static_cast<const math::VEC3*>(&pPosArray[3]));
+    math::VEC3Transform(&p0, &rMtx, static_cast<const math::VEC3*>(&pPosArray[0]));
+    math::VEC3Transform(&p1, &rMtx, static_cast<const math::VEC3*>(&pPosArray[1]));
+    math::VEC3Transform(&p2, &rMtx, static_cast<const math::VEC3*>(&pPosArray[2]));
+    math::VEC3Transform(&p3, &rMtx, static_cast<const math::VEC3*>(&pPosArray[3]));
 
     GXBegin(GX_QUADS, GX_VTXFMT0, 4);
     {
@@ -52,13 +46,13 @@ static void DrawQuad(const math::MTX34& rMtx, const math::_VEC3* pPosArray,
     GXEnd();
 }
 
-DrawFreeStrategy::DrawFreeStrategy() {}
+DrawFreeStrategy::DrawFreeStrategy() {
+}
 
 void DrawFreeStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManager) {
     InitGraphics(rInfo, pManager);
 
-    const EmitterDrawSetting& rSetting =
-        *pManager->mResource->GetEmitterDrawSetting();
+    const EmitterDrawSetting& rSetting = *pManager->mResource->GetEmitterDrawSetting();
 
     math::MTX34 glbMtx;
     math::MTX34 posMtx;
@@ -70,11 +64,11 @@ void DrawFreeStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManager) {
     f32 px = rSetting.pivotX / 100.0f;
     f32 py = rSetting.pivotY / 100.0f;
 
-    GetFirstDrawParticleFunc pGetFirstFunc = GetGetFirstDrawParticleFunc(
-        rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
+    GetFirstDrawParticleFunc pGetFirstFunc =
+        GetGetFirstDrawParticleFunc(rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
 
-    GetNextDrawParticleFunc pGetNextFunc = GetGetNextDrawParticleFunc(
-        rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
+    GetNextDrawParticleFunc pGetNextFunc =
+        GetGetNextDrawParticleFunc(rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
 
     bool first = true;
 
@@ -127,11 +121,9 @@ void DrawFreeStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManager) {
     }
 }
 
-void DrawFreeStrategy::InitGraphics(const DrawInfo& rInfo,
-                                    ParticleManager* pManager) {
+void DrawFreeStrategy::InitGraphics(const DrawInfo& rInfo, ParticleManager* pManager) {
 
-    const EmitterDrawSetting& rSetting =
-        *pManager->mResource->GetEmitterDrawSetting();
+    const EmitterDrawSetting& rSetting = *pManager->mResource->GetEmitterDrawSetting();
 
     InitTexture(rSetting);
     InitTev(rSetting, rInfo);
@@ -154,8 +146,7 @@ void DrawFreeStrategy::InitGraphics(const DrawInfo& rInfo,
     GXSetCurrentMtx(GX_PNMTX0);
 }
 
-static math::MTX34 CalcLocalTransform(f32 px, f32 py, f32 sx, f32 sy,
-                                      const nw4r::math::MTX34& rRot) {
+static math::MTX34 CalcLocalTransform(f32 px, f32 py, f32 sx, f32 sy, const nw4r::math::MTX34& rRot) {
 
     f32 sx_px = sx * px;
     f32 sy_py = sy * py;

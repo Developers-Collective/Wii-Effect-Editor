@@ -6,14 +6,15 @@ namespace nw4r {
 namespace ut {
 
 class CharStrmReader {
-public:
+  public:
     typedef u16 (CharStrmReader::*ReadFunc)();
 
-public:
-    explicit CharStrmReader(ReadFunc pFunc)
-        : mCharStrm(NULL), mReadFunc(pFunc) {}
+  public:
+    explicit CharStrmReader(ReadFunc pFunc) : mCharStrm(NULL), mReadFunc(pFunc) {
+    }
 
-    ~CharStrmReader() {}
+    ~CharStrmReader() {
+    }
 
     u16 ReadNextCharUTF8();
     u16 ReadNextCharUTF16();
@@ -35,7 +36,7 @@ public:
         mCharStrm = pStrm;
     }
 
-private:
+  private:
     template <typename T> T GetChar(int offset) const {
         return static_cast<const T*>(mCharStrm)[offset];
     }
@@ -44,7 +45,7 @@ private:
         static_cast<const T*>(mCharStrm) += offset;
     }
 
-private:
+  private:
     const void* mCharStrm; // at 0x0
     ReadFunc mReadFunc;    // at 0x4
 };

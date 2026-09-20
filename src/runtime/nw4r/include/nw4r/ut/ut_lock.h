@@ -28,7 +28,7 @@ inline void Unlock(OSMutex& rMutex) {
  *
  ******************************************************************************/
 template <typename T> class AutoLock : private NonCopyable {
-public:
+  public:
     explicit AutoLock(T& rLockObj) : mLockObj(rLockObj) {
         Lock(mLockObj);
     }
@@ -36,7 +36,7 @@ public:
         Unlock(mLockObj);
     }
 
-private:
+  private:
     T& mLockObj; // at 0x0
 };
 
@@ -48,13 +48,14 @@ private:
  *
  ******************************************************************************/
 class AutoInterruptLock : private NonCopyable {
-public:
-    AutoInterruptLock() : mOldState(OSDisableInterrupts()) {}
+  public:
+    AutoInterruptLock() : mOldState(OSDisableInterrupts()) {
+    }
     ~AutoInterruptLock() {
         OSRestoreInterrupts(mOldState);
     }
 
-private:
+  private:
     BOOL mOldState; // at 0x0
 };
 

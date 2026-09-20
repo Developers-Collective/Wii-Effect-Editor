@@ -1,16 +1,16 @@
 #include <nw4r/math.h>
 
-#define FSEL_MAX(_fx, _fy)                                                     \
-    fx = (_fx);                                                                \
-    fy = (_fy);                                                                \
-    dt = fx - fy;                                                              \
-    ASM ( fsel work, dt, fx, fy )
+#define FSEL_MAX(_fx, _fy)                                                                                             \
+    fx = (_fx);                                                                                                        \
+    fy = (_fy);                                                                                                        \
+    dt = fx - fy;                                                                                                      \
+    ASM(fsel work, dt, fx, fy)
 
-#define FSEL_MIN(_fx, _fy)                                                     \
-    fx = (_fx);                                                                \
-    fy = (_fy);                                                                \
-    dt = fy - fx;                                                              \
-    ASM ( fsel work, dt, fx, fy )
+#define FSEL_MIN(_fx, _fy)                                                                                             \
+    fx = (_fx);                                                                                                        \
+    fy = (_fy);                                                                                                        \
+    dt = fy - fx;                                                                                                      \
+    ASM(fsel work, dt, fx, fy)
 
 namespace nw4r {
 namespace math {
@@ -51,15 +51,24 @@ MTX33* MTX33Identity(register MTX33* pMtx) {
     register f32 c_00 = 0.0f, c_10 = 1.0f;
     register f32 c_11;
 
-    ASM (
-        ps_merge00 c_11, c_10, c_00
+    ASM(ps_merge00 c_11, c_10,
+        c_00
 
-        psq_st c_00, MTX33._02(pMtx), 0, 0 // _02=0, _10=0
-        psq_st c_00, MTX33._20(pMtx), 0, 0 // _20=0, _21=0
-        psq_st c_11, MTX33._00(pMtx), 0, 0 // _00=1, _01=0
-        psq_st c_11, MTX33._11(pMtx), 0, 0 // _11=1, _12=0
+            psq_st c_00,
+        MTX33._02(pMtx), 0,
+        0 // _02=0, _10=0
+        psq_st c_00,
+        MTX33._20(pMtx), 0,
+        0 // _20=0, _21=0
+        psq_st c_11,
+        MTX33._00(pMtx), 0,
+        0 // _00=1, _01=0
+        psq_st c_11,
+        MTX33._11(pMtx), 0,
+        0 // _11=1, _12=0
 
-        stfs c_10,   MTX33._22(pMtx)       // _22=1
+        stfs c_10,
+        MTX33._22(pMtx) // _22=1
     )
 
     return pMtx;
@@ -68,21 +77,13 @@ MTX33* MTX33Identity(register MTX33* pMtx) {
 MTX33* MTX34ToMTX33(register MTX33* pOut, register const MTX34* pIn) {
     register f32 row0a, row0b, row1a, row1b, row2a, row2b;
 
-    ASM (
-        psq_l row0a, MTX34._00(pIn), 0, 0
-        psq_l row0b, MTX34._02(pIn), 0, 0
-        psq_l row1a, MTX34._10(pIn), 0, 0
-        psq_l row1b, MTX34._12(pIn), 0, 0
-        psq_l row2a, MTX34._20(pIn), 0, 0
-        psq_l row2b, MTX34._22(pIn), 0, 0
+    ASM(psq_l row0a, MTX34._00(pIn), 0, 0 psq_l row0b, MTX34._02(pIn), 0, 0 psq_l row1a, MTX34._10(pIn), 0,
+        0 psq_l row1b, MTX34._12(pIn), 0, 0 psq_l row2a, MTX34._20(pIn), 0, 0 psq_l row2b, MTX34._22(pIn), 0,
+        0
 
-        psq_st row0a, MTX33._00(pOut), 0, 0
-        psq_st row0b, MTX33._02(pOut), 1, 0
-        psq_st row1a, MTX33._10(pOut), 0, 0
-        psq_st row1b, MTX33._12(pOut), 1, 0
-        psq_st row2a, MTX33._20(pOut), 0, 0
-        psq_st row2b, MTX33._22(pOut), 1, 0
-    )
+        psq_st row0a,
+        MTX33._00(pOut), 0, 0 psq_st row0b, MTX33._02(pOut), 1, 0 psq_st row1a, MTX33._10(pOut), 0, 0 psq_st row1b,
+        MTX33._12(pOut), 1, 0 psq_st row2a, MTX33._20(pOut), 0, 0 psq_st row2b, MTX33._22(pOut), 1, 0)
 
     return pOut;
 }
@@ -168,103 +169,101 @@ inverse_exists:
 MTX34* MTX34Zero(register MTX34* pMtx) {
     register f32 c_zero = 0.0f;
 
-    ASM (
-        psq_st c_zero, MTX34._00(pMtx), 0, 0
-        psq_st c_zero, MTX34._02(pMtx), 0, 0
-        psq_st c_zero, MTX34._10(pMtx), 0, 0
-        psq_st c_zero, MTX34._12(pMtx), 0, 0
-        psq_st c_zero, MTX34._20(pMtx), 0, 0
-        psq_st c_zero, MTX34._22(pMtx), 0, 0
-    )
+    ASM(psq_st c_zero, MTX34._00(pMtx), 0, 0 psq_st c_zero, MTX34._02(pMtx), 0, 0 psq_st c_zero, MTX34._10(pMtx), 0,
+        0 psq_st c_zero, MTX34._12(pMtx), 0, 0 psq_st c_zero, MTX34._20(pMtx), 0, 0 psq_st c_zero, MTX34._22(pMtx), 0,
+        0)
 
     return pMtx;
 }
 
-MTX34* MTX34Scale(register MTX34* pOut, register const MTX34* pIn,
-                  register const VEC3* pScale) {
+MTX34* MTX34Scale(register MTX34* pOut, register const MTX34* pIn, register const VEC3* pScale) {
     register f32 xy, z;
     register f32 row0a, row0b;
     register f32 row1a, row1b;
     register f32 row2a, row2b;
 
-    ASM (
-        psq_l xy, VEC3.x(pScale), 0, 0 // (XXXX, YYYY)
-        psq_l z,  VEC3.z(pScale), 1, 0 // (ZZZZ, 1111)
+    ASM(psq_l xy, VEC3.x(pScale), 0,
+        0 // (XXXX, YYYY)
+        psq_l z,
+        VEC3.z(pScale), 1,
+        0 // (ZZZZ, 1111)
 
-        psq_l row0a, MTX34._00(pIn), 0, 0
-        psq_l row0b, MTX34._02(pIn), 0, 0
-        psq_l row1a, MTX34._10(pIn), 0, 0
-        psq_l row1b, MTX34._12(pIn), 0, 0
-        psq_l row2a, MTX34._20(pIn), 0, 0
-        psq_l row2b, MTX34._22(pIn), 0, 0
-        
-        ps_mul row0a, row0a, xy
-        ps_mul row0b, row0b, z
-        ps_mul row1a, row1a, xy
-        ps_mul row1b, row1b, z
-        ps_mul row2a, row2a, xy
-        ps_mul row2b, row2b, z
-    
-        psq_st row0a, MTX34._00(pOut), 0, 0
-        psq_st row0b, MTX34._02(pOut), 0, 0
-        psq_st row1a, MTX34._10(pOut), 0, 0
-        psq_st row1b, MTX34._12(pOut), 0, 0
-        psq_st row2a, MTX34._20(pOut), 0, 0
-        psq_st row2b, MTX34._22(pOut), 0, 0
-    )
+        psq_l row0a,
+        MTX34._00(pIn), 0, 0 psq_l row0b, MTX34._02(pIn), 0, 0 psq_l row1a, MTX34._10(pIn), 0, 0 psq_l row1b,
+        MTX34._12(pIn), 0, 0 psq_l row2a, MTX34._20(pIn), 0, 0 psq_l row2b, MTX34._22(pIn), 0,
+        0
+
+        ps_mul row0a,
+        row0a, xy ps_mul row0b, row0b, z ps_mul row1a, row1a, xy ps_mul row1b, row1b, z ps_mul row2a, row2a,
+        xy ps_mul row2b, row2b,
+        z
+
+            psq_st row0a,
+        MTX34._00(pOut), 0, 0 psq_st row0b, MTX34._02(pOut), 0, 0 psq_st row1a, MTX34._10(pOut), 0, 0 psq_st row1b,
+        MTX34._12(pOut), 0, 0 psq_st row2a, MTX34._20(pOut), 0, 0 psq_st row2b, MTX34._22(pOut), 0, 0)
 
     return pOut;
 }
 
-MTX34* MTX34Trans(register MTX34* pOut, register const MTX34* pIn,
-                  register const VEC3* pTrans) {
+MTX34* MTX34Trans(register MTX34* pOut, register const MTX34* pIn, register const VEC3* pTrans) {
     register f32 xy, z;
     register f32 row0a, row0b;
     register f32 row1a, row1b;
     register f32 row2a, row2b;
     register f32 work0, work1, work2;
 
-    ASM (
-        psq_l xy, VEC3.x(pTrans), 0, 0 // (XXXX, YYYY)
-        psq_l z,  VEC3.z(pTrans), 1, 0 // (ZZZZ, 1111)
+    ASM(psq_l xy, VEC3.x(pTrans), 0,
+        0 // (XXXX, YYYY)
+        psq_l z,
+        VEC3.z(pTrans), 1,
+        0 // (ZZZZ, 1111)
 
         /**
          * Copy inner 3x3 matrix
          */
 
-        psq_l row0a, MTX34._00(pIn), 0, 0
-        psq_l row0b, MTX34._02(pIn), 0, 0
-        psq_l row1a, MTX34._10(pIn), 0, 0
-        psq_l row1b, MTX34._12(pIn), 0, 0
-        psq_l row2a, MTX34._20(pIn), 0, 0
-        psq_l row2b, MTX34._22(pIn), 0, 0
+        psq_l row0a,
+        MTX34._00(pIn), 0, 0 psq_l row0b, MTX34._02(pIn), 0, 0 psq_l row1a, MTX34._10(pIn), 0, 0 psq_l row1b,
+        MTX34._12(pIn), 0, 0 psq_l row2a, MTX34._20(pIn), 0, 0 psq_l row2b, MTX34._22(pIn), 0,
+        0
 
-        psq_st row0a, MTX34._00(pOut), 0, 0
-        psq_st row0b, MTX34._02(pOut), 0, 0
-        psq_st row1a, MTX34._10(pOut), 0, 0
-        psq_st row1b, MTX34._12(pOut), 0, 0
-        psq_st row2a, MTX34._20(pOut), 0, 0
-        psq_st row2b, MTX34._22(pOut), 0, 0
+        psq_st row0a,
+        MTX34._00(pOut), 0, 0 psq_st row0b, MTX34._02(pOut), 0, 0 psq_st row1a, MTX34._10(pOut), 0, 0 psq_st row1b,
+        MTX34._12(pOut), 0, 0 psq_st row2a, MTX34._20(pOut), 0, 0 psq_st row2b, MTX34._22(pOut), 0,
+        0
 
         /**
          * Perform translation
          */
 
-        ps_mul  work0, row0a, xy            // (_00*x, _01*y)
-        ps_madd work1, row0b, z, work0      // (_02*z + _00*x, _03 + _01*y)
-        ps_sum0 work2, work1, work2, work1
-        psq_st  work2, MTX34._03(pOut), 1, 0
+        ps_mul work0,
+        row0a,
+        xy // (_00*x, _01*y)
+            ps_madd work1,
+        row0b, z,
+        work0 // (_02*z + _00*x, _03 + _01*y)
+            ps_sum0 work2,
+        work1, work2, work1 psq_st work2, MTX34._03(pOut), 1,
+        0
 
-        ps_mul  work0, row1a, xy            // (_10*x, _11*y)
-        ps_madd work1, row1b, z, work0      // (_12*z + _10*x, _13 + _11*y)
-        ps_sum0 work2, work1, work2, work1
-        psq_st  work2, MTX34._13(pOut), 1, 0
-        
-        ps_mul  work0, row2a, xy            // (_20*x, _21*y)
-        ps_madd work1, row2b, z, work0      // (_22*z + _20*x, _23 + _21*y)
-        ps_sum0 work2, work1, work2, work1
-        psq_st  work2, MTX34._23(pOut), 1, 0
-    )
+        ps_mul work0,
+        row1a,
+        xy // (_10*x, _11*y)
+            ps_madd work1,
+        row1b, z,
+        work0 // (_12*z + _10*x, _13 + _11*y)
+            ps_sum0 work2,
+        work1, work2, work1 psq_st work2, MTX34._13(pOut), 1,
+        0
+
+        ps_mul work0,
+        row2a,
+        xy // (_20*x, _21*y)
+            ps_madd work1,
+        row2b, z,
+        work0 // (_22*z + _20*x, _23 + _21*y)
+            ps_sum0 work2,
+        work1, work2, work1 psq_st work2, MTX34._23(pOut), 1, 0)
 
     return pOut;
 }
@@ -322,18 +321,32 @@ MTX44* MTX44Identity(register MTX44* pMtx) {
     register f32 c_zero = 0.0f, c_one = 1.0f;
     register f32 c_01, c_10;
 
-    ASM (
-        ps_merge01 c_01, c_zero, c_one
-        ps_merge10 c_10, c_one, c_zero
+    ASM(ps_merge01 c_01, c_zero, c_one ps_merge10 c_10, c_one,
+        c_zero
 
-        psq_st c_zero, MTX44._02(pMtx), 0, 0  // _02=0, _03=0
-        psq_st c_zero, MTX44._12(pMtx), 0, 0  // _12=0, _13=0
-        psq_st c_zero, MTX44._20(pMtx), 0, 0  // _20=0, _21=0
-        psq_st c_01,   MTX44._10(pMtx), 0, 0  // _10=0, _11=1
-        psq_st c_10,   MTX44._00(pMtx), 0, 0  // _00=1, _01=0
-        psq_st c_10,   MTX44._22(pMtx), 0, 0  // _22=1, _23=0
-        psq_st c_zero, MTX44._30(pMtx), 0, 0  // _30=0, _31=0
-        psq_st c_01,   MTX44._32(pMtx), 0, 0  // _32=0, _33=1
+            psq_st c_zero,
+        MTX44._02(pMtx), 0,
+        0 // _02=0, _03=0
+        psq_st c_zero,
+        MTX44._12(pMtx), 0,
+        0 // _12=0, _13=0
+        psq_st c_zero,
+        MTX44._20(pMtx), 0,
+        0 // _20=0, _21=0
+        psq_st c_01,
+        MTX44._10(pMtx), 0,
+        0 // _10=0, _11=1
+        psq_st c_10,
+        MTX44._00(pMtx), 0,
+        0 // _00=1, _01=0
+        psq_st c_10,
+        MTX44._22(pMtx), 0,
+        0 // _22=1, _23=0
+        psq_st c_zero,
+        MTX44._30(pMtx), 0,
+        0 // _30=0, _31=0
+        psq_st c_01,
+        MTX44._32(pMtx), 0, 0 // _32=0, _33=1
     )
 
     return pMtx;
@@ -345,25 +358,15 @@ MTX44* MTX44Copy(register MTX44* pDst, register const MTX44* pSrc) {
     register f32 row2a, row2b;
     register f32 row3a, row3b;
 
-    ASM (
-        psq_l row0a, MTX44._00(pSrc), 0, 0
-        psq_l row0b, MTX44._02(pSrc), 0, 0
-        psq_l row1a, MTX44._10(pSrc), 0, 0
-        psq_l row1b, MTX44._12(pSrc), 0, 0
-        psq_l row2a, MTX44._20(pSrc), 0, 0
-        psq_l row2b, MTX44._22(pSrc), 0, 0
-        psq_l row3a, MTX44._30(pSrc), 0, 0
-        psq_l row3b, MTX44._32(pSrc), 0, 0
+    ASM(psq_l row0a, MTX44._00(pSrc), 0, 0 psq_l row0b, MTX44._02(pSrc), 0, 0 psq_l row1a, MTX44._10(pSrc), 0,
+        0 psq_l row1b, MTX44._12(pSrc), 0, 0 psq_l row2a, MTX44._20(pSrc), 0, 0 psq_l row2b, MTX44._22(pSrc), 0,
+        0 psq_l row3a, MTX44._30(pSrc), 0, 0 psq_l row3b, MTX44._32(pSrc), 0,
+        0
 
-        psq_st row0a, MTX44._00(pDst), 0, 0
-        psq_st row0b, MTX44._02(pDst), 0, 0
-        psq_st row1a, MTX44._10(pDst), 0, 0
-        psq_st row1b, MTX44._12(pDst), 0, 0
-        psq_st row2a, MTX44._20(pDst), 0, 0
-        psq_st row2b, MTX44._22(pDst), 0, 0
-        psq_st row3a, MTX44._30(pDst), 0, 0
-        psq_st row3b, MTX44._32(pDst), 0, 0
-    )
+        psq_st row0a,
+        MTX44._00(pDst), 0, 0 psq_st row0b, MTX44._02(pDst), 0, 0 psq_st row1a, MTX44._10(pDst), 0, 0 psq_st row1b,
+        MTX44._12(pDst), 0, 0 psq_st row2a, MTX44._20(pDst), 0, 0 psq_st row2b, MTX44._22(pDst), 0, 0 psq_st row3a,
+        MTX44._30(pDst), 0, 0 psq_st row3b, MTX44._32(pDst), 0, 0)
 
     return pDst;
 }

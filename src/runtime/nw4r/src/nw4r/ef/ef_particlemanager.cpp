@@ -16,14 +16,15 @@ math::MTX34 ParticleManager::smMtxInv;
 
 s32 ParticleManager::smMtxInvId = 0;
 
-ParticleManager::ParticleManager()
-    : mActivityList(offsetof(Particle, mActivityLink)) {}
+ParticleManager::ParticleManager() : mActivityList(offsetof(Particle, mActivityLink)) {
+}
 
 void ParticleManager::SendClosing() {
     mManagerEM->Closing(this);
 }
 
-void ParticleManager::DestroyFunc() {}
+void ParticleManager::DestroyFunc() {
+}
 
 bool ParticleManager::Closing(Particle* pParticle) {
     pParticle->mParticleManager->UnRef();
@@ -50,11 +51,9 @@ int ParticleManager::RetireParticleAll() {
     Particle* pIt;
     Particle* pNext;
 
-    for (pIt = static_cast<Particle*>(mActivityList.mActiveList.headObject);
-         pIt != NULL; pIt = pNext) {
+    for (pIt = static_cast<Particle*>(mActivityList.mActiveList.headObject); pIt != NULL; pIt = pNext) {
 
-        pNext = static_cast<Particle*>(
-            NW4R_UT_LIST_GET_LINK(mActivityList.mActiveList, pIt)->nextObject);
+        pNext = static_cast<Particle*>(NW4R_UT_LIST_GET_LINK(mActivityList.mActiveList, pIt)->nextObject);
 
         if (pIt->mLifeStatus == NW4R_EF_LS_ACTIVE) {
             num += RetireParticle(pIt);
@@ -85,9 +84,7 @@ bool ParticleManager::Initialize(Emitter* pParent, EmitterResource* pResource) {
 
     EmitterDesc* pDesc = mResource->GetEmitterDesc();
 
-    mDrawStrategy =
-        mManagerEM->mManagerEF->mManagerES->mDrawStrategyBuilder->Create(
-            pDesc->drawSetting.ptcltype);
+    mDrawStrategy = mManagerEM->mManagerEF->mManagerES->mDrawStrategyBuilder->Create(pDesc->drawSetting.ptcltype);
 
     mLastCalced = NULL;
 
@@ -96,23 +93,20 @@ bool ParticleManager::Initialize(Emitter* pParent, EmitterResource* pResource) {
     return true;
 }
 
-ParticleManager::~ParticleManager() {}
+ParticleManager::~ParticleManager() {
+}
 
-Particle*
-ParticleManager::CreateParticle(u16 life, math::VEC3 pos, math::VEC3 vel,
-                                const math::MTX34* pSpace, f32 momentum,
-                                const EmitterInheritSetting* pSetting,
-                                Particle* pReferencePtcl, u16 calcRemain) {
+Particle* ParticleManager::CreateParticle(u16 life, math::VEC3 pos, math::VEC3 vel, const math::MTX34* pSpace,
+                                          f32 momentum, const EmitterInheritSetting* pSetting, Particle* pReferencePtcl,
+                                          u16 calcRemain) {
 
-    Particle* pParticle =
-        mManagerEM->mManagerEF->mManagerES->GetMemoryManager()->AllocParticle();
+    Particle* pParticle = mManagerEM->mManagerEF->mManagerES->GetMemoryManager()->AllocParticle();
 
     if (pParticle == NULL) {
         return NULL;
     }
 
-    if (!pParticle->Initialize(life, pos, vel, this, pSpace, momentum, pSetting,
-                               pReferencePtcl)) {
+    if (!pParticle->Initialize(life, pos, vel, this, pSpace, momentum, pSetting, pReferencePtcl)) {
         return NULL;
     }
 
@@ -124,8 +118,7 @@ ParticleManager::CreateParticle(u16 life, math::VEC3 pos, math::VEC3 vel,
 }
 
 void ParticleManager::Calc() {
-    Particle* pFirst = static_cast<Particle*>(
-        ut::List_GetNext(&mActivityList.mActiveList, mLastCalced));
+    Particle* pFirst = static_cast<Particle*>(ut::List_GetNext(&mActivityList.mActiveList, mLastCalced));
 
     if (pFirst == NULL) {
         return;
@@ -134,8 +127,7 @@ void ParticleManager::Calc() {
     Particle* pIt = pFirst;
 
     if (mManagerEM->mManagerEF->mCallBack.mPrevPtclCalc != NULL) {
-        mManagerEM->mManagerEF->mCallBack.mPrevPtclCalc(
-            this, &mActivityList.mActiveList, pFirst);
+        mManagerEM->mManagerEF->mCallBack.mPrevPtclCalc(this, &mActivityList.mActiveList, pFirst);
     }
 
     math::MTX34 mtxLocToGlb;
@@ -174,8 +166,7 @@ void ParticleManager::Calc() {
     Particle* pNext;
 
     for (; pIt != NULL; pIt = pNext) {
-        pNext = static_cast<Particle*>(
-            NW4R_UT_LIST_GET_LINK(mActivityList.mActiveList, pIt)->nextObject);
+        pNext = static_cast<Particle*>(NW4R_UT_LIST_GET_LINK(mActivityList.mActiveList, pIt)->nextObject);
 
         if (pIt->mLifeStatus != NW4R_EF_LS_ACTIVE) {
             continue;
@@ -211,92 +202,145 @@ void ParticleManager::Calc() {
         bool findEmitterTiming = false;
         breff::PostField postField;
 
-        for (size_t i=pIt->mTick==0 ? 0 : mResource->particleInitTracks;i<mResource->particleTracks.size();++i) {
-            const auto& track=mResource->particleTracks[i];
-            if (track.size()<32) throw std::runtime_error("Truncated particle animation");
-            if (track[4]&8) continue;
-            if (track[0]!=0xAC && track[0]!=0xAB) continue;
-            const unsigned kind=track[1],type=track[2];
-            const bool emitterTiming=track[4]&16;
+        for (size_t i = pIt->mTick == 0 ? 0 : mResource->particleInitTracks; i < mResource->particleTracks.size();
+             ++i) {
+            const auto& track = mResource->particleTracks[i];
+            if (track.size() < 32)
+                throw std::runtime_error("Truncated particle animation");
+            if (track[4] & 8)
+                continue;
+            if (track[0] != 0xAC && track[0] != 0xAB)
+                continue;
+            const unsigned kind = track[1], type = track[2];
+            const bool emitterTiming = track[4] & 16;
             findEmitterTiming |= emitterTiming;
-            const u32 tick=emitterTiming ? mManagerEM->mTick : pIt->mTick;
-            const u32 life=emitterTiming ? ((mManagerEM->mParameter.mComFlags&EmitterDesc::CMN_FLAG_MAX_LIFE) ? 0xFFFFFFFF : mManagerEM->mParameter.mEmitSpan) : pIt->mLife;
-            const u16 seed=emitterTiming ? mManagerEM->mRandSeed : pIt->mRandSeed;
-            auto& parameter=pIt->mParameter;
-            if (type==0) {
-                u8* target=nullptr; size_t count=0;
-                if (kind<16 && (kind%4==0 || kind%4==3)) {
-                    target=reinterpret_cast<u8*>(parameter.mColor)+kind;
-                    count=kind%4==0 ? 3 : 1;
-                } else if (kind==119) { target=&parameter.mACmpRef0; count=1; }
-                else if (kind==120) { target=&parameter.mACmpRef1; count=1; }
-                else throw std::runtime_error("Unknown v11 byte animation target");
-                breff::evaluateU8(track,{target,count},tick,seed,life);
-            } else if (type==3 || type==6) {
-                float* target=nullptr; size_t count=0;
+            const u32 tick = emitterTiming ? mManagerEM->mTick : pIt->mTick;
+            const u32 life = emitterTiming ? ((mManagerEM->mParameter.mComFlags & EmitterDesc::CMN_FLAG_MAX_LIFE)
+                                                  ? 0xFFFFFFFF
+                                                  : mManagerEM->mParameter.mEmitSpan)
+                                           : pIt->mLife;
+            const u16 seed = emitterTiming ? mManagerEM->mRandSeed : pIt->mRandSeed;
+            auto& parameter = pIt->mParameter;
+            if (type == 0) {
+                u8* target = nullptr;
+                size_t count = 0;
+                if (kind < 16 && (kind % 4 == 0 || kind % 4 == 3)) {
+                    target = reinterpret_cast<u8*>(parameter.mColor) + kind;
+                    count = kind % 4 == 0 ? 3 : 1;
+                } else if (kind == 119) {
+                    target = &parameter.mACmpRef0;
+                    count = 1;
+                } else if (kind == 120) {
+                    target = &parameter.mACmpRef1;
+                    count = 1;
+                } else
+                    throw std::runtime_error("Unknown v11 byte animation target");
+                breff::evaluateU8(track, {target, count}, tick, seed, life);
+            } else if (type == 3 || type == 6) {
+                float* target = nullptr;
+                size_t count = 0;
                 switch (kind) {
-                case 16: target=&parameter.mSize.x; count=2; break;
-                case 24: target=&parameter.mScale.x; count=2; break;
-                case 32: target=&parameter.mRotate.x; count=3; break;
-                case 44: case 52: case 60: target=&parameter.mTextureScale[(kind-44)/8].x; count=2; break;
-                case 68: case 72: case 76: target=&parameter.mTextureRotate[(kind-68)/4]; count=1; break;
-                case 80: case 88: case 96: target=&parameter.mTextureTranslate[(kind-80)/8].x; count=2; break;
-                default: throw std::runtime_error("Unknown v11 float animation target");
+                case 16:
+                    target = &parameter.mSize.x;
+                    count = 2;
+                    break;
+                case 24:
+                    target = &parameter.mScale.x;
+                    count = 2;
+                    break;
+                case 32:
+                    target = &parameter.mRotate.x;
+                    count = 3;
+                    break;
+                case 44:
+                case 52:
+                case 60:
+                    target = &parameter.mTextureScale[(kind - 44) / 8].x;
+                    count = 2;
+                    break;
+                case 68:
+                case 72:
+                case 76:
+                    target = &parameter.mTextureRotate[(kind - 68) / 4];
+                    count = 1;
+                    break;
+                case 80:
+                case 88:
+                case 96:
+                    target = &parameter.mTextureTranslate[(kind - 80) / 8].x;
+                    count = 2;
+                    break;
+                default:
+                    throw std::runtime_error("Unknown v11 float animation target");
                 }
-                if (type==6) breff::evaluateRotate(track,{target,count},tick,seed,life);
-                else breff::evaluateF32(track,{target,count},tick,seed,life);
-            } else if (type==4) {
-                if (kind!=104 && kind!=108 && kind!=112) throw std::runtime_error("Invalid texture animation target");
-                const auto selected=breff::evaluateTexture(track,tick,seed,life);
-                const auto name=breff::curveName(track,selected.name);
-                auto* texture=Resource::GetInstance()->_FindTexture(name.c_str(),nullptr);
-                if (!texture) throw std::runtime_error("Missing animated texture: "+name);
-                const unsigned layer=(kind-104)/4;
-                parameter.mTexture[layer]=texture;
-                parameter.mTextureWrap=(parameter.mTextureWrap&~(15u<<(layer*4)))|((selected.wrap&15u)<<(layer*4));
-                parameter.mTextureReverse=(parameter.mTextureReverse&~(3u<<(layer*2)))|((selected.reverse&3u)<<(layer*2));
-            } else if (type==5) {
-                for (const auto& entry:breff::evaluateChild(track,tick,seed,life)) {
-                    const auto name=breff::curveName(track,(uint16_t(entry[10])<<8)|entry[11]);
-                    auto* child=Resource::GetInstance()->_FindEmitter(name.c_str(),nullptr);
-                    if (!child) throw std::runtime_error("Missing child effect: "+name);
+                if (type == 6)
+                    breff::evaluateRotate(track, {target, count}, tick, seed, life);
+                else
+                    breff::evaluateF32(track, {target, count}, tick, seed, life);
+            } else if (type == 4) {
+                if (kind != 104 && kind != 108 && kind != 112)
+                    throw std::runtime_error("Invalid texture animation target");
+                const auto selected = breff::evaluateTexture(track, tick, seed, life);
+                const auto name = breff::curveName(track, selected.name);
+                auto* texture = Resource::GetInstance()->_FindTexture(name.c_str(), nullptr);
+                if (!texture)
+                    throw std::runtime_error("Missing animated texture: " + name);
+                const unsigned layer = (kind - 104) / 4;
+                parameter.mTexture[layer] = texture;
+                parameter.mTextureWrap =
+                    (parameter.mTextureWrap & ~(15u << (layer * 4))) | ((selected.wrap & 15u) << (layer * 4));
+                parameter.mTextureReverse =
+                    (parameter.mTextureReverse & ~(3u << (layer * 2))) | ((selected.reverse & 3u) << (layer * 2));
+            } else if (type == 5) {
+                for (const auto& entry : breff::evaluateChild(track, tick, seed, life)) {
+                    const auto name = breff::curveName(track, (uint16_t(entry[10]) << 8) | entry[11]);
+                    auto* child = Resource::GetInstance()->_FindEmitter(name.c_str(), nullptr);
+                    if (!child)
+                        throw std::runtime_error("Missing child effect: " + name);
                     EmitterInheritSetting inherit{};
-                    inherit.speed=int16_t((uint16_t(entry[0])<<8)|entry[1]);
-                    inherit.scale=entry[2]; inherit.alpha=entry[3]; inherit.color=entry[4];
-                    inherit.weight=entry[5]; inherit.type=entry[6]; inherit.flag=entry[7];
-                    auto& queue=mManagerEM->mManagerEF->mManagerES->mCreationQueue;
-                    if (inherit.type) queue.AddEmitterCreation(&inherit,pIt,child,pIt->mCalcRemain);
-                    else queue.AddParticleCreation(&inherit,pIt,child,pIt->mCalcRemain);
+                    inherit.speed = int16_t((uint16_t(entry[0]) << 8) | entry[1]);
+                    inherit.scale = entry[2];
+                    inherit.alpha = entry[3];
+                    inherit.color = entry[4];
+                    inherit.weight = entry[5];
+                    inherit.type = entry[6];
+                    inherit.flag = entry[7];
+                    auto& queue = mManagerEM->mManagerEF->mManagerES->mCreationQueue;
+                    if (inherit.type)
+                        queue.AddEmitterCreation(&inherit, pIt, child, pIt->mCalcRemain);
+                    else
+                        queue.AddParticleCreation(&inherit, pIt, child, pIt->mCalcRemain);
                 }
-            } else if (type==7) {
-                breff::FieldContext context{mtxLocToGlb,mtxGlbToLoc,mtxEmToGlb,mtxLocToEm,mtxEmToLoc,prevPos,prevVel,prevDir};
-                breff::applyField(track,*pIt,tick,seed,life,context,addVel,addPos);
-            } else if (type==2) {
-                postField.evaluate(track,tick,seed,life);
+            } else if (type == 7) {
+                breff::FieldContext context{mtxLocToGlb, mtxGlbToLoc, mtxEmToGlb, mtxLocToEm,
+                                            mtxEmToLoc,  prevPos,     prevVel,    prevDir};
+                breff::applyField(track, *pIt, tick, seed, life, context, addVel, addPos);
+            } else if (type == 2) {
+                postField.evaluate(track, tick, seed, life);
             } else {
                 throw std::runtime_error("Particle animation type " + std::to_string(type) + " is not yet ported");
             }
         }
         if (!postField.track.empty()) {
-            breff::FieldContext context{mtxLocToGlb,mtxGlbToLoc,mtxEmToGlb,mtxLocToEm,mtxEmToLoc,prevPos,prevVel,prevDir};
-            if (!postField.apply(*pIt,context,pIt->mParameter.mVelocity+addVel,addPos)) {
-                RetireParticle(pIt); continue;
+            breff::FieldContext context{mtxLocToGlb, mtxGlbToLoc, mtxEmToGlb, mtxLocToEm,
+                                        mtxEmToLoc,  prevPos,     prevVel,    prevDir};
+            if (!postField.apply(*pIt, context, pIt->mParameter.mVelocity + addVel, addPos)) {
+                RetireParticle(pIt);
+                continue;
             }
         } else {
             pIt->mParameter.mVelocity += addVel;
-            pIt->mParameter.mPosition += addPos*pIt->mParameter.mMomentum;
-            pIt->mParameter.mPosition += pIt->mParameter.mVelocity*pIt->mParameter.mMomentum;
+            pIt->mParameter.mPosition += addPos * pIt->mParameter.mMomentum;
+            pIt->mParameter.mPosition += pIt->mParameter.mVelocity * pIt->mParameter.mMomentum;
         }
 
         pIt->mTick++;
     }
 
-    mLastCalced =
-        static_cast<Particle*>(ut::List_GetLast(&mActivityList.mActiveList));
+    mLastCalced = static_cast<Particle*>(ut::List_GetLast(&mActivityList.mActiveList));
 
     if (mManagerEM->mManagerEF->mCallBack.mPostPtclCalc != NULL) {
-        mManagerEM->mManagerEF->mCallBack.mPostPtclCalc(
-            this, &mActivityList.mActiveList, pFirst);
+        mManagerEM->mManagerEF->mCallBack.mPostPtclCalc(this, &mActivityList.mActiveList, pFirst);
     }
 }
 
@@ -304,8 +348,7 @@ void ParticleManager::Draw(const DrawInfo& rInfo) {
     const EmitterDesc* pDesc = mResource->GetEmitterDesc();
 
     if ((pDesc->drawSetting.mFlags & EmitterDrawSetting::FLAG_HIDDEN) ||
-        (mManagerEM->mParameter.mComFlags &
-         EmitterDesc::CMN_FLAG_DISABLE_DRAW)) {
+        (mManagerEM->mParameter.mComFlags & EmitterDesc::CMN_FLAG_DISABLE_DRAW)) {
         return;
     }
 
@@ -317,8 +360,7 @@ math::MTX34* ParticleManager::CalcGlobalMtx(math::MTX34* pResult) {
         math::MTX34 orig;
         mManagerEM->CalcGlobalMtx(&orig);
 
-        mManagerEM->RestructMatrix(&mMtx, &orig, mFlag & FLAG_MTX_INHERIT_SCALE,
-                                   mFlag & FLAG_MTX_INHERIT_ROT,
+        mManagerEM->RestructMatrix(&mMtx, &orig, mFlag & FLAG_MTX_INHERIT_SCALE, mFlag & FLAG_MTX_INHERIT_ROT,
                                    mInheritTranslate);
 
         mMtxDirty = false;
@@ -331,8 +373,7 @@ math::MTX34* ParticleManager::CalcGlobalMtx(math::MTX34* pResult) {
 void ParticleManager::BeginCalc(bool onlyIfRemain) {
     mLastCalced = NULL;
 
-    Particle* pIt =
-        static_cast<Particle*>(mActivityList.mActiveList.headObject);
+    Particle* pIt = static_cast<Particle*>(mActivityList.mActiveList.headObject);
 
     // clang-format off
     for (; pIt != NULL; pIt = static_cast<Particle*>(
@@ -344,8 +385,7 @@ void ParticleManager::BeginCalc(bool onlyIfRemain) {
                 pIt->mCalcRemain--;
             }
 
-            if (pIt->GetLifeStatus() == NW4R_EF_LS_ACTIVE &&
-                pIt->mEvalStatus == NW4R_EF_ES_DONE) {
+            if (pIt->GetLifeStatus() == NW4R_EF_LS_ACTIVE && pIt->mEvalStatus == NW4R_EF_ES_DONE) {
 
                 pIt->mEvalStatus = NW4R_EF_ES_WAIT;
             }
@@ -354,16 +394,14 @@ void ParticleManager::BeginCalc(bool onlyIfRemain) {
 }
 
 void ParticleManager::EndCalc() {
-    Particle* pIt =
-        static_cast<Particle*>(mActivityList.mActiveList.headObject);
+    Particle* pIt = static_cast<Particle*>(mActivityList.mActiveList.headObject);
 
     // clang-format off
     for (; pIt != NULL; pIt = static_cast<Particle*>(
             NW4R_UT_LIST_GET_LINK(mActivityList.mActiveList, pIt)->nextObject))
     // clang-format on
     {
-        if (pIt->GetLifeStatus() == NW4R_EF_LS_ACTIVE &&
-            pIt->mEvalStatus == NW4R_EF_ES_SKIP) {
+        if (pIt->GetLifeStatus() == NW4R_EF_LS_ACTIVE && pIt->mEvalStatus == NW4R_EF_ES_SKIP) {
 
             pIt->mEvalStatus = NW4R_EF_ES_DONE;
         }
@@ -385,10 +423,10 @@ const math::MTX34* ParticleManager::Draw_GetMtxPMtoEM() const {
     return &smDrawMtxPMtoEM;
 }
 
-void ParticleManager::EndDraw() {}
+void ParticleManager::EndDraw() {
+}
 
-void ParticleManager::Draw_ModifyColor(Particle* pParticle, GXColor* pColorPri,
-                                       GXColor* pColorSec) {
+void ParticleManager::Draw_ModifyColor(Particle* pParticle, GXColor* pColorPri, GXColor* pColorSec) {
     switch (mModifier.mLight.mType) {
     case ParticleModifier::SIMPLELIGHT_AMBIENT: {
         pColorPri->r = (pColorPri->r * mModifier.mLight.mAmbient.r + 128) >> 8;
@@ -420,8 +458,7 @@ void ParticleManager::Draw_ModifyColor(Particle* pParticle, GXColor* pColorPri,
             const math::MTX34* pMtxPMtoEM = Draw_GetMtxPMtoEM();
 
             math::VEC3 pos;
-            math::VEC3Transform(&pos, pMtxPMtoEM,
-                                &pParticle->mParameter.mPosition);
+            math::VEC3Transform(&pos, pMtxPMtoEM, &pParticle->mParameter.mPosition);
 
             math::VEC3Sub(&pos, &pos, &mModifier.mLight.mPosition);
             f32 dist = math::VEC3Len(&pos);
@@ -442,20 +479,16 @@ void ParticleManager::Draw_ModifyColor(Particle* pParticle, GXColor* pColorPri,
                 s32 attn = (256 * dist) / mModifier.mLight.mRadius;
 
                 u16 lr = mModifier.mLight.mDiffuse.r * 256 +
-                         attn * (mModifier.mLight.mAmbient.r -
-                                 mModifier.mLight.mDiffuse.r);
+                         attn * (mModifier.mLight.mAmbient.r - mModifier.mLight.mDiffuse.r);
 
                 u16 lg = mModifier.mLight.mDiffuse.g * 256 +
-                         attn * (mModifier.mLight.mAmbient.g -
-                                 mModifier.mLight.mDiffuse.g);
+                         attn * (mModifier.mLight.mAmbient.g - mModifier.mLight.mDiffuse.g);
 
                 u16 lb = mModifier.mLight.mDiffuse.b * 256 +
-                         attn * (mModifier.mLight.mAmbient.b -
-                                 mModifier.mLight.mDiffuse.b);
+                         attn * (mModifier.mLight.mAmbient.b - mModifier.mLight.mDiffuse.b);
 
                 u16 la = mModifier.mLight.mDiffuse.a * 256 +
-                         attn * (mModifier.mLight.mAmbient.a -
-                                 mModifier.mLight.mDiffuse.a);
+                         attn * (mModifier.mLight.mAmbient.a - mModifier.mLight.mDiffuse.a);
 
                 pColorPri->r = (pColorPri->r * lr + 128) >> 16;
                 pColorPri->g = (pColorPri->g * lg + 128) >> 16;

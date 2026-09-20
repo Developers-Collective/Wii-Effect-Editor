@@ -39,8 +39,8 @@
 #if defined(NW4R_EF_MEMORY_MANAGER_CONFIGURED)
 #define NW4R_EF_MEMORY_MANAGER_NAMESPACE_OPEN
 #else
-#define NW4R_EF_MEMORY_MANAGER_NAMESPACE_OPEN                                  \
-    namespace nw4r {                                                           \
+#define NW4R_EF_MEMORY_MANAGER_NAMESPACE_OPEN                                                                          \
+    namespace nw4r {                                                                                                   \
     namespace ef {
 #endif
 #endif
@@ -50,8 +50,8 @@
 #if defined(NW4R_EF_MEMORY_MANAGER_CONFIGURED)
 #define NW4R_EF_MEMORY_MANAGER_NAMESPACE_CLOSE
 #else
-#define NW4R_EF_MEMORY_MANAGER_NAMESPACE_CLOSE                                 \
-    }                                                                          \
+#define NW4R_EF_MEMORY_MANAGER_NAMESPACE_CLOSE                                                                         \
+    }                                                                                                                  \
     }
 #endif
 #endif

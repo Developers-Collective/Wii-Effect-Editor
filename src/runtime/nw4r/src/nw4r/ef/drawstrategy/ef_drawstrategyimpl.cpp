@@ -24,7 +24,8 @@ const math::MTX34 DrawStrategyImpl::mIdentityMtx(
  * DrawStrategyImpl
  *
  ******************************************************************************/
-DrawStrategyImpl::DrawStrategyImpl() {}
+DrawStrategyImpl::DrawStrategyImpl() {
+}
 
 void DrawStrategyImpl::InitTexture(const EmitterDrawSetting& rSetting) {
     mNumTexmap = 0;
@@ -51,104 +52,79 @@ void DrawStrategyImpl::InitTexture(const EmitterDrawSetting& rSetting) {
     GXSetNumTexGens(mNumTexmap);
 }
 
-void DrawStrategyImpl::InitTev(const EmitterDrawSetting& rSetting,
-                               const DrawInfo& rInfo) {
+void DrawStrategyImpl::InitTev(const EmitterDrawSetting& rSetting, const DrawInfo& rInfo) {
 
     int i;
 
-    GXSetClipMode(rSetting.mFlags & EmitterDrawSetting::FLAG_CLIP_DISABLE
-                      ? GX_CLIP_DISABLE
-                      : GX_CLIP_ENABLE);
+    GXSetClipMode(rSetting.mFlags & EmitterDrawSetting::FLAG_CLIP_DISABLE ? GX_CLIP_DISABLE : GX_CLIP_ENABLE);
 
     GXSetNumTevStages(rSetting.mNumTevs);
-    GXSetTevSwapModeTable(GX_TEV_SWAP0, GX_CH_RED, GX_CH_GREEN, GX_CH_BLUE,
-                          GX_CH_ALPHA);
+    GXSetTevSwapModeTable(GX_TEV_SWAP0, GX_CH_RED, GX_CH_GREEN, GX_CH_BLUE, GX_CH_ALPHA);
 
     for (i = 0; i < rSetting.mNumTevs; i++) {
         GXSetTevDirect(static_cast<GXTevStageID>(i));
 
-        GXSetTevColorIn(static_cast<GXTevStageID>(i),
-                        static_cast<GXTevColorArg>(rSetting.mTevColor[i].mA),
+        GXSetTevColorIn(static_cast<GXTevStageID>(i), static_cast<GXTevColorArg>(rSetting.mTevColor[i].mA),
                         static_cast<GXTevColorArg>(rSetting.mTevColor[i].mB),
                         static_cast<GXTevColorArg>(rSetting.mTevColor[i].mC),
                         static_cast<GXTevColorArg>(rSetting.mTevColor[i].mD));
 
-        GXSetTevAlphaIn(static_cast<GXTevStageID>(i),
-                        static_cast<GXTevAlphaArg>(rSetting.mTevAlpha[i].mA),
+        GXSetTevAlphaIn(static_cast<GXTevStageID>(i), static_cast<GXTevAlphaArg>(rSetting.mTevAlpha[i].mA),
                         static_cast<GXTevAlphaArg>(rSetting.mTevAlpha[i].mB),
                         static_cast<GXTevAlphaArg>(rSetting.mTevAlpha[i].mC),
                         static_cast<GXTevAlphaArg>(rSetting.mTevAlpha[i].mD));
 
-        GXSetTevColorOp(
-            static_cast<GXTevStageID>(i),
-            static_cast<GXTevOp>(rSetting.mTevColorOp[i].mOp),
-            static_cast<GXTevBias>(rSetting.mTevColorOp[i].mBias),
-            static_cast<GXTevScale>(rSetting.mTevColorOp[i].mScale),
-            static_cast<GXBool>(rSetting.mTevColorOp[i].mClamp),
-            static_cast<GXTevRegID>(rSetting.mTevColorOp[i].mOutReg));
+        GXSetTevColorOp(static_cast<GXTevStageID>(i), static_cast<GXTevOp>(rSetting.mTevColorOp[i].mOp),
+                        static_cast<GXTevBias>(rSetting.mTevColorOp[i].mBias),
+                        static_cast<GXTevScale>(rSetting.mTevColorOp[i].mScale),
+                        static_cast<GXBool>(rSetting.mTevColorOp[i].mClamp),
+                        static_cast<GXTevRegID>(rSetting.mTevColorOp[i].mOutReg));
 
-        GXSetTevAlphaOp(
-            static_cast<GXTevStageID>(i),
-            static_cast<GXTevOp>(rSetting.mTevAlphaOp[i].mOp),
-            static_cast<GXTevBias>(rSetting.mTevAlphaOp[i].mBias),
-            static_cast<GXTevScale>(rSetting.mTevAlphaOp[i].mScale),
-            static_cast<GXBool>(rSetting.mTevAlphaOp[i].mClamp),
-            static_cast<GXTevRegID>(rSetting.mTevAlphaOp[i].mOutReg));
+        GXSetTevAlphaOp(static_cast<GXTevStageID>(i), static_cast<GXTevOp>(rSetting.mTevAlphaOp[i].mOp),
+                        static_cast<GXTevBias>(rSetting.mTevAlphaOp[i].mBias),
+                        static_cast<GXTevScale>(rSetting.mTevAlphaOp[i].mScale),
+                        static_cast<GXBool>(rSetting.mTevAlphaOp[i].mClamp),
+                        static_cast<GXTevRegID>(rSetting.mTevAlphaOp[i].mOutReg));
 
-        GXSetTevKColorSel(
-            static_cast<GXTevStageID>(i),
-            static_cast<GXTevKColorSel>(rSetting.mTevKColorSel[i]));
+        GXSetTevKColorSel(static_cast<GXTevStageID>(i), static_cast<GXTevKColorSel>(rSetting.mTevKColorSel[i]));
 
-        GXSetTevKAlphaSel(
-            static_cast<GXTevStageID>(i),
-            static_cast<GXTevKAlphaSel>(rSetting.mTevKAlphaSel[i]));
+        GXSetTevKAlphaSel(static_cast<GXTevStageID>(i), static_cast<GXTevKAlphaSel>(rSetting.mTevKAlphaSel[i]));
 
-        GXSetTevSwapMode(static_cast<GXTevStageID>(i), GX_TEV_SWAP0,
-                         GX_TEV_SWAP0);
+        GXSetTevSwapMode(static_cast<GXTevStageID>(i), GX_TEV_SWAP0, GX_TEV_SWAP0);
 
-        int texture=rSetting.mTevTexture[i];
-        int map=texture<TEX_LAYER_MAX ? mTexmapMap[texture] : -1;
-        GXSetTevOrder(static_cast<GXTevStageID>(i),map<0 ? GX_TEXCOORD_NULL : static_cast<GXTexCoordID>(map),
-                      map<0 ? GX_TEXMAP_NULL : static_cast<GXTexMapID>(map),GX_COLOR0A0);
+        int texture = rSetting.mTevTexture[i];
+        int map = texture < TEX_LAYER_MAX ? mTexmapMap[texture] : -1;
+        GXSetTevOrder(static_cast<GXTevStageID>(i), map < 0 ? GX_TEXCOORD_NULL : static_cast<GXTexCoordID>(map),
+                      map < 0 ? GX_TEXMAP_NULL : static_cast<GXTexMapID>(map), GX_COLOR0A0);
     }
 
     if (rSetting.mFlags & EmitterDrawSetting::FLAG_TEXIND_ENABLE) {
         GXSetNumIndStages(1);
 
-        GXSetIndTexOrder(GX_INDTEXSTAGE0,
-                         static_cast<GXTexCoordID>(mTexmapMap[TEX_LAYER_IND]),
+        GXSetIndTexOrder(GX_INDTEXSTAGE0, static_cast<GXTexCoordID>(mTexmapMap[TEX_LAYER_IND]),
                          static_cast<GXTexMapID>(mTexmapMap[TEX_LAYER_IND]));
 
         GXSetIndTexCoordScale(GX_INDTEXSTAGE0, GX_ITS_1, GX_ITS_1);
-        GXSetIndTexMtx(GX_ITM_0, rSetting.mIndTexOffsetMtx,
-                       rSetting.mIndTexScaleExp);
+        GXSetIndTexMtx(GX_ITM_0, rSetting.mIndTexOffsetMtx, rSetting.mIndTexScaleExp);
 
-        GXSetTevIndirect(
-            static_cast<GXTevStageID>(rSetting.mIndirectTargetStage),
-            GX_INDTEXSTAGE0, GX_ITF_8, GX_ITB_STU, GX_ITM_0, GX_ITW_OFF,
-            GX_ITW_OFF, FALSE, FALSE, GX_ITBA_OFF);
+        GXSetTevIndirect(static_cast<GXTevStageID>(rSetting.mIndirectTargetStage), GX_INDTEXSTAGE0, GX_ITF_8,
+                         GX_ITB_STU, GX_ITM_0, GX_ITW_OFF, GX_ITW_OFF, FALSE, FALSE, GX_ITBA_OFF);
     } else {
         GXSetNumIndStages(0);
     }
 
-    GXSetZCompLoc(rSetting.mFlags & EmitterDrawSetting::FLAG_ZCOMP_BEFORE_TEX
-                      ? TRUE
-                      : FALSE);
+    GXSetZCompLoc(rSetting.mFlags & EmitterDrawSetting::FLAG_ZCOMP_BEFORE_TEX ? TRUE : FALSE);
 
     GXSetCullMode(GX_CULL_NONE);
     GXSetCoPlanar(FALSE);
 
-    GXSetBlendMode(static_cast<GXBlendMode>(rSetting.mBlendMode.mType),
-                   static_cast<GXBlendFactor>(rSetting.mBlendMode.mSrcFactor),
-                   static_cast<GXBlendFactor>(rSetting.mBlendMode.mDstFactor),
-                   static_cast<GXLogicOp>(rSetting.mBlendMode.mOp));
+    GXSetBlendMode(
+        static_cast<GXBlendMode>(rSetting.mBlendMode.mType), static_cast<GXBlendFactor>(rSetting.mBlendMode.mSrcFactor),
+        static_cast<GXBlendFactor>(rSetting.mBlendMode.mDstFactor), static_cast<GXLogicOp>(rSetting.mBlendMode.mOp));
 
-    GXSetZMode(
-        rSetting.mFlags & EmitterDrawSetting::FLAG_ZCOMP_ENABLE_TEST ? TRUE
-                                                                     : FALSE,
-        static_cast<GXCompare>(rSetting.mZCompareFunc),
-        rSetting.mFlags & EmitterDrawSetting::FLAG_ZCOMP_ENABLE_UPDATE ? TRUE
-                                                                       : FALSE);
+    GXSetZMode(rSetting.mFlags & EmitterDrawSetting::FLAG_ZCOMP_ENABLE_TEST ? TRUE : FALSE,
+               static_cast<GXCompare>(rSetting.mZCompareFunc),
+               rSetting.mFlags & EmitterDrawSetting::FLAG_ZCOMP_ENABLE_UPDATE ? TRUE : FALSE);
 
     if (rSetting.mFlags & EmitterDrawSetting::FLAG_FOG_ENABLE) {
         GXFogType type;
@@ -163,9 +139,7 @@ void DrawStrategyImpl::InitTev(const EmitterDrawSetting& rSetting,
     }
 }
 
-void DrawStrategyImpl::InitColor(ParticleManager* pManager,
-                                 const EmitterDrawSetting& rSetting,
-                                 const DrawInfo& rInfo) {
+void DrawStrategyImpl::InitColor(ParticleManager* pManager, const EmitterDrawSetting& rSetting, const DrawInfo& rInfo) {
 
 #pragma unused(pManager)
 
@@ -176,21 +150,16 @@ void DrawStrategyImpl::InitColor(ParticleManager* pManager,
 
     GXSetNumChans(1);
 
-    if (rInfo.IsLightEnable() &&
-        rSetting.mColorInput.mRasColor == ColorInput::RASCOLOR_LIGHTING) {
+    if (rInfo.IsLightEnable() && rSetting.mColorInput.mRasColor == ColorInput::RASCOLOR_LIGHTING) {
 
-        GXSetChanCtrl(GX_COLOR0, TRUE, GX_SRC_REG, GX_SRC_REG,
-                      rInfo.GetLightMask(), GX_DF_NONE,
+        GXSetChanCtrl(GX_COLOR0, TRUE, GX_SRC_REG, GX_SRC_REG, rInfo.GetLightMask(), GX_DF_NONE,
                       rInfo.IsSpotLight() ? GX_AF_SPOT : GX_AF_NONE);
     } else {
-        GXSetChanCtrl(GX_COLOR0, FALSE, GX_SRC_REG, GX_SRC_REG, GX_LIGHT_NULL,
-                      GX_DF_NONE, GX_AF_NONE);
+        GXSetChanCtrl(GX_COLOR0, FALSE, GX_SRC_REG, GX_SRC_REG, GX_LIGHT_NULL, GX_DF_NONE, GX_AF_NONE);
     }
 
-    GXSetChanCtrl(GX_ALPHA0, FALSE, GX_SRC_REG, GX_SRC_REG, GX_LIGHT_NULL,
-                  GX_DF_NONE, GX_AF_NONE);
-    GXSetChanCtrl(GX_COLOR1A1, FALSE, GX_SRC_REG, GX_SRC_REG, GX_LIGHT_NULL,
-                  GX_DF_NONE, GX_AF_NONE);
+    GXSetChanCtrl(GX_ALPHA0, FALSE, GX_SRC_REG, GX_SRC_REG, GX_LIGHT_NULL, GX_DF_NONE, GX_AF_NONE);
+    GXSetChanCtrl(GX_COLOR1A1, FALSE, GX_SRC_REG, GX_SRC_REG, GX_LIGHT_NULL, GX_DF_NONE, GX_AF_NONE);
 
     GXColor mat;
     mat.a = mat.r = mat.g = mat.b = 255;
@@ -230,10 +199,8 @@ void DrawStrategyImpl::InitColor(ParticleManager* pManager,
     }
 }
 
-void DrawStrategyImpl::SetupGP(Particle* pParticle,
-                               const EmitterDrawSetting& rSetting,
-                               const DrawInfo& rInfo, bool first,
-                               bool xfDirty) {
+void DrawStrategyImpl::SetupGP(Particle* pParticle, const EmitterDrawSetting& rSetting, const DrawInfo& rInfo,
+                               bool first, bool xfDirty) {
 
 #pragma unused(xfDirty)
 
@@ -256,8 +223,7 @@ void DrawStrategyImpl::SetupGP(Particle* pParticle,
     xfBug = xfBug && !changed;
 
     if ((rSetting.mFlags & EmitterDrawSetting::FLAG_CLIP_DISABLE) ||
-        !pParticle->mParticleManager->mManagerEM->mManagerEF->mManagerES
-             ->mXFFlushSafe) {
+        !pParticle->mParticleManager->mManagerEM->mManagerEF->mManagerES->mXFFlushSafe) {
         return;
     }
 
@@ -270,12 +236,9 @@ void DrawStrategyImpl::SetupGP(Particle* pParticle,
     GXGetVtxDesc(GX_VA_NRM, &vtxDescNrm.type);
     GXGetVtxDesc(GX_VA_TEX0, &vtxDescTex0.type);
 
-    GXGetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, &vtxDescPos.compCnt,
-                    &vtxDescPos.compType, &shift);
-    GXGetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, &vtxDescNrm.compCnt,
-                    &vtxDescNrm.compType, &shift);
-    GXGetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, &vtxDescTex0.compCnt,
-                    &vtxDescTex0.compType, &shift);
+    GXGetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, &vtxDescPos.compCnt, &vtxDescPos.compType, &shift);
+    GXGetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, &vtxDescNrm.compCnt, &vtxDescNrm.compType, &shift);
+    GXGetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, &vtxDescTex0.compCnt, &vtxDescTex0.compType, &shift);
 
     if (!xfBug) {
         return;
@@ -546,20 +509,15 @@ void DrawStrategyImpl::SetupGP(Particle* pParticle,
     GXEnd();
 }
 
-bool DrawStrategyImpl::_SetupACmp(Particle* pParticle,
-                                  const EmitterDrawSetting& rSetting,
-                                  bool first) {
+bool DrawStrategyImpl::_SetupACmp(Particle* pParticle, const EmitterDrawSetting& rSetting, bool first) {
 
-    if (first || mPrevARef0 != pParticle->mParameter.mACmpRef0 ||
-        mPrevARef1 != pParticle->mParameter.mACmpRef1) {
+    if (first || mPrevARef0 != pParticle->mParameter.mACmpRef0 || mPrevARef1 != pParticle->mParameter.mACmpRef1) {
 
         mPrevARef0 = pParticle->mParameter.mACmpRef0;
         mPrevARef1 = pParticle->mParameter.mACmpRef1;
 
-        GXSetAlphaCompare(static_cast<GXCompare>(rSetting.mACmpComp0),
-                          pParticle->mParameter.mACmpRef0,
-                          static_cast<GXAlphaOp>(rSetting.mACmpOp),
-                          static_cast<GXCompare>(rSetting.mACmpComp1),
+        GXSetAlphaCompare(static_cast<GXCompare>(rSetting.mACmpComp0), pParticle->mParameter.mACmpRef0,
+                          static_cast<GXAlphaOp>(rSetting.mACmpOp), static_cast<GXCompare>(rSetting.mACmpComp1),
                           pParticle->mParameter.mACmpRef1);
 
         return true;
@@ -568,35 +526,35 @@ bool DrawStrategyImpl::_SetupACmp(Particle* pParticle,
     return false;
 }
 
-bool DrawStrategyImpl::_SetupTevReg(Particle* pParticle,
-                                    const EmitterDrawSetting& rSetting,
-                                    bool first) {
+bool DrawStrategyImpl::_SetupTevReg(Particle* pParticle, const EmitterDrawSetting& rSetting, bool first) {
 
     GXColor colors[7]{};
-    pParticle->Draw_GetColor(COLOR_LAYER_0,&colors[1],&colors[2]);
-    pParticle->Draw_GetColor(COLOR_LAYER_1,&colors[3],&colors[4]);
-    auto multiply=[](GXColor a,GXColor b) {
-        return GXColor{u8((unsigned(a.r)*b.r+128)>>8),u8((unsigned(a.g)*b.g+128)>>8),
-                       u8((unsigned(a.b)*b.b+128)>>8),u8((unsigned(a.a)*b.a+128)>>8)};
+    pParticle->Draw_GetColor(COLOR_LAYER_0, &colors[1], &colors[2]);
+    pParticle->Draw_GetColor(COLOR_LAYER_1, &colors[3], &colors[4]);
+    auto multiply = [](GXColor a, GXColor b) {
+        return GXColor{u8((unsigned(a.r) * b.r + 128) >> 8), u8((unsigned(a.g) * b.g + 128) >> 8),
+                       u8((unsigned(a.b) * b.b + 128) >> 8), u8((unsigned(a.a) * b.a + 128) >> 8)};
     };
-    colors[5]=multiply(colors[1],colors[2]); colors[6]=multiply(colors[3],colors[4]);
-    auto select=[&](u8 color,u8 alpha) {
-        GXColor result=color<7 ? colors[color] : GXColor{};
-        result.a=alpha<7 ? colors[alpha].a : 0;
+    colors[5] = multiply(colors[1], colors[2]);
+    colors[6] = multiply(colors[3], colors[4]);
+    auto select = [&](u8 color, u8 alpha) {
+        GXColor result = color < 7 ? colors[color] : GXColor{};
+        result.a = alpha < 7 ? colors[alpha].a : 0;
         return result;
     };
-    for (int i=0;i<3;++i) {
-        GXSetTevColor(static_cast<GXTevRegID>(GX_TEVREG0+i),select(rSetting.mColorInput.mTevColor[i],rSetting.mAlphaInput.mTevColor[i]));
+    for (int i = 0; i < 3; ++i) {
+        GXSetTevColor(static_cast<GXTevRegID>(GX_TEVREG0 + i),
+                      select(rSetting.mColorInput.mTevColor[i], rSetting.mAlphaInput.mTevColor[i]));
     }
-    for (int i=0;i<4;++i) {
-        GXSetTevKColor(static_cast<GXTevKColorID>(GX_KCOLOR0+i),select(rSetting.mColorInput.mTevKColor[i],rSetting.mAlphaInput.mTevKColor[i]));
+    for (int i = 0; i < 4; ++i) {
+        GXSetTevKColor(static_cast<GXTevKColorID>(GX_KCOLOR0 + i),
+                       select(rSetting.mColorInput.mTevKColor[i], rSetting.mAlphaInput.mTevKColor[i]));
     }
     return true;
 }
 
-bool DrawStrategyImpl::_SetupTexture(Particle* pParticle,
-                                     const EmitterDrawSetting& rSetting,
-                                     const DrawInfo& rInfo, bool first) {
+bool DrawStrategyImpl::_SetupTexture(Particle* pParticle, const EmitterDrawSetting& rSetting, const DrawInfo& rInfo,
+                                     bool first) {
 
     bool changed = false;
 
@@ -621,16 +579,13 @@ bool DrawStrategyImpl::_SetupTexture(Particle* pParticle,
         GXTexWrapMode wrapT = pParticle->GetTextureWrapT(i);
 
         if (first || !mPrevTexture[i].IsEqual(
-                         pTexData, scaleS, scaleT, transS, transT, wrapS, wrapT,
-                         pParticle->mParameter.mTextureScale[i],
-                         pParticle->mParameter.mTextureRotate[i],
-                         pParticle->mParameter.mTextureTranslate[i])) {
+                         pTexData, scaleS, scaleT, transS, transT, wrapS, wrapT, pParticle->mParameter.mTextureScale[i],
+                         pParticle->mParameter.mTextureRotate[i], pParticle->mParameter.mTextureTranslate[i])) {
 
             changed = true;
 
-            mPrevTexture[i].Set(pTexData, scaleS, scaleT, transS, transT, wrapS,
-                                wrapT, pParticle->mParameter.mTextureScale[i],
-                                pParticle->mParameter.mTextureRotate[i],
+            mPrevTexture[i].Set(pTexData, scaleS, scaleT, transS, transT, wrapS, wrapT,
+                                pParticle->mParameter.mTextureScale[i], pParticle->mParameter.mTextureRotate[i],
                                 pParticle->mParameter.mTextureTranslate[i]);
 
             int format = pTexData->format;
@@ -642,16 +597,13 @@ bool DrawStrategyImpl::_SetupTexture(Particle* pParticle,
             case GX_TF_C4:
             case GX_TF_C8:
             case GX_TF_C14X2: {
-                GXInitTlutObj(&tlutObj, pTexData->tlut,
-                              static_cast<GXTlutFmt>(pTexData->tlutFormat),
+                GXInitTlutObj(&tlutObj, pTexData->tlut, static_cast<GXTlutFmt>(pTexData->tlutFormat),
                               pTexData->tlutEntries);
 
                 GXLoadTlut(&tlutObj, static_cast<GXTlut>(mTexmapMap[i]));
 
-                GXInitTexObjCI(&texObj, pTexData->texture, pTexData->width,
-                               pTexData->height, static_cast<GXCITexFmt>(format),
-                               wrapS, wrapT, pTexData->mipmap > 1,
-                               mTexmapMap[i]);
+                GXInitTexObjCI(&texObj, pTexData->texture, pTexData->width, pTexData->height,
+                               static_cast<GXCITexFmt>(format), wrapS, wrapT, pTexData->mipmap > 1, mTexmapMap[i]);
                 break;
             }
 
@@ -663,9 +615,8 @@ bool DrawStrategyImpl::_SetupTexture(Particle* pParticle,
             case GX_TF_RGB5A3:
             case GX_TF_RGBA8:
             case GX_TF_CMPR: {
-                GXInitTexObj(&texObj, pTexData->texture, pTexData->width,
-                             pTexData->height, static_cast<GXTexFmt>(format),
-                             wrapS, wrapT, pTexData->mipmap > 1);
+                GXInitTexObj(&texObj, pTexData->texture, pTexData->width, pTexData->height,
+                             static_cast<GXTexFmt>(format), wrapS, wrapT, pTexData->mipmap > 1);
                 break;
             }
 
@@ -677,9 +628,8 @@ bool DrawStrategyImpl::_SetupTexture(Particle* pParticle,
             f32 maxLod = pTexData->mipmap + -1.0f;
             f32 lodBias = 0.0f;
 
-            GXInitTexObjLOD(
-                &texObj, pTexData->mipmap > 1 ? GX_LIN_MIP_LIN : GX_LINEAR,
-                GX_LINEAR, 0.0f, maxLod, lodBias, FALSE, FALSE, GX_ANISO_1);
+            GXInitTexObjLOD(&texObj, pTexData->mipmap > 1 ? GX_LIN_MIP_LIN : GX_LINEAR, GX_LINEAR, 0.0f, maxLod,
+                            lodBias, FALSE, FALSE, GX_ANISO_1);
 
             GXLoadTexObj(&texObj, static_cast<GXTexMapID>(mTexmapMap[i]));
 
@@ -760,20 +710,16 @@ bool DrawStrategyImpl::_SetupTexture(Particle* pParticle,
             math::MTX34Mult(&mtx, &work, &mtx);
 
             if (!((rSetting.mFlags >> (i + 7 /* FLAG_TEX1_PROJ */)) & 1)) {
-                GXLoadTexMtxImm(mtx, GX_TEXMTX0 + mTexmapMap[i] * 3,
-                                GX_MTX_2x4);
+                GXLoadTexMtxImm(mtx, GX_TEXMTX0 + mTexmapMap[i] * 3, GX_MTX_2x4);
 
-                GXSetTexCoordGen(static_cast<GXTexCoordID>(mTexmapMap[i]),
-                                 GX_TG_MTX2x4, GX_TG_TEX0,
+                GXSetTexCoordGen(static_cast<GXTexCoordID>(mTexmapMap[i]), GX_TG_MTX2x4, GX_TG_TEX0,
                                  GX_TEXMTX0 + mTexmapMap[i] * 3);
             } else {
                 math::MTX34Mult(&mtx, rInfo.GetProjMtx(), &mtx);
 
-                GXLoadTexMtxImm(mtx, GX_PTTEXMTX0 + mTexmapMap[i] * 3,
-                                GX_MTX_3x4);
+                GXLoadTexMtxImm(mtx, GX_PTTEXMTX0 + mTexmapMap[i] * 3, GX_MTX_3x4);
 
-                GXSetTexCoordGen2(static_cast<GXTexCoordID>(mTexmapMap[i]),
-                                  GX_TG_MTX3x4, GX_TG_POS, GX_PNMTX0, FALSE,
+                GXSetTexCoordGen2(static_cast<GXTexCoordID>(mTexmapMap[i]), GX_TG_MTX3x4, GX_TG_POS, GX_PNMTX0, FALSE,
                                   GX_PTTEXMTX0 + mTexmapMap[i] * 3);
             }
         }
@@ -782,8 +728,7 @@ bool DrawStrategyImpl::_SetupTexture(Particle* pParticle,
     return changed;
 }
 
-DrawStrategyImpl::GetFirstDrawParticleFunc
-DrawStrategyImpl::GetGetFirstDrawParticleFunc(int drawOrder) {
+DrawStrategyImpl::GetFirstDrawParticleFunc DrawStrategyImpl::GetGetFirstDrawParticleFunc(int drawOrder) {
 
     switch (drawOrder) {
     case DRAWORDER_YOUNGERS_FIRST: {
@@ -796,8 +741,7 @@ DrawStrategyImpl::GetGetFirstDrawParticleFunc(int drawOrder) {
     }
 }
 
-DrawStrategyImpl::GetNextDrawParticleFunc
-DrawStrategyImpl::GetGetNextDrawParticleFunc(int drawOrder) {
+DrawStrategyImpl::GetNextDrawParticleFunc DrawStrategyImpl::GetGetNextDrawParticleFunc(int drawOrder) {
 
     switch (drawOrder) {
     case DRAWORDER_YOUNGERS_FIRST: {
@@ -810,28 +754,22 @@ DrawStrategyImpl::GetGetNextDrawParticleFunc(int drawOrder) {
     }
 }
 
-Particle*
-DrawStrategyImpl::GetFirstDrawParticle_EldersFirst(ParticleManager* pManager) {
+Particle* DrawStrategyImpl::GetFirstDrawParticle_EldersFirst(ParticleManager* pManager) {
 
     return GetOldestDrawParticle(pManager);
 }
 
-Particle* DrawStrategyImpl::GetFirstDrawParticle_YoungersFirst(
-    ParticleManager* pManager) {
+Particle* DrawStrategyImpl::GetFirstDrawParticle_YoungersFirst(ParticleManager* pManager) {
 
     return GetYoungestDrawParticle(pManager);
 }
 
-Particle*
-DrawStrategyImpl::GetNextDrawParticle_EldersFirst(ParticleManager* pManager,
-                                                  Particle* pParticle) {
+Particle* DrawStrategyImpl::GetNextDrawParticle_EldersFirst(ParticleManager* pManager, Particle* pParticle) {
 
     return GetYoungerDrawParticle(pManager, pParticle);
 }
 
-Particle*
-DrawStrategyImpl::GetNextDrawParticle_YoungersFirst(ParticleManager* pManager,
-                                                    Particle* pParticle) {
+Particle* DrawStrategyImpl::GetNextDrawParticle_YoungersFirst(ParticleManager* pManager, Particle* pParticle) {
 
     return GetElderDrawParticle(pManager, pParticle);
 }
@@ -841,8 +779,7 @@ DrawStrategyImpl::GetNextDrawParticle_YoungersFirst(ParticleManager* pManager,
  * AheadContext
  *
  ******************************************************************************/
-DrawStrategyImpl::AheadContext::AheadContext(const math::MTX34& rViewMtx,
-                                             ParticleManager* pManager) {
+DrawStrategyImpl::AheadContext::AheadContext(const math::MTX34& rViewMtx, ParticleManager* pManager) {
 
     mCommon.mViewMtx = &rViewMtx;
     mCommon.mParticleManager = pManager;
@@ -850,11 +787,9 @@ DrawStrategyImpl::AheadContext::AheadContext(const math::MTX34& rViewMtx,
     pManager->mManagerEM->CalcGlobalMtx(&mCommon.mEmitterMtx);
     pManager->CalcGlobalMtx(&mCommon.mParticleManagerMtx);
 
-    math::MTX34Inv(&mCommon.mParticleManagerMtxInv,
-                   &mCommon.mParticleManagerMtx);
+    math::MTX34Inv(&mCommon.mParticleManagerMtxInv, &mCommon.mParticleManagerMtx);
 
-    math::VEC3 axisY(mCommon.mEmitterMtx._01, mCommon.mEmitterMtx._11,
-                     mCommon.mEmitterMtx._21);
+    math::VEC3 axisY(mCommon.mEmitterMtx._01, mCommon.mEmitterMtx._11, mCommon.mEmitterMtx._21);
     math::VEC3TransformNormal(&axisY, &mCommon.mParticleManagerMtxInv, &axisY);
 
     if (!Normalize(&axisY)) {
@@ -863,8 +798,7 @@ DrawStrategyImpl::AheadContext::AheadContext(const math::MTX34& rViewMtx,
 
     mCommon.mEmitterAxisY = axisY;
 
-    math::VEC3 center(mCommon.mEmitterMtx._03, mCommon.mEmitterMtx._13,
-                      mCommon.mEmitterMtx._23);
+    math::VEC3 center(mCommon.mEmitterMtx._03, mCommon.mEmitterMtx._13, mCommon.mEmitterMtx._23);
     math::VEC3TransformCoord(&center, &mCommon.mParticleManagerMtxInv, &center);
 
     mCommon.mEmitterCenter = center;

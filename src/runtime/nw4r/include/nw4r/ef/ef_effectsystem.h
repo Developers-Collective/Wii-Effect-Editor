@@ -19,10 +19,10 @@ class EmitFormBuilder;
 class MemoryManagerBase;
 
 class EffectSystem {
-private:
+  private:
     MemoryManagerBase* mMemoryManager; // at 0x0
 
-public:
+  public:
     std::optional<u16> mPreviewSeed;
     DrawOrderBase* mDrawOrderFunc;             // at 0x4
     DrawStrategyBuilder* mDrawStrategyBuilder; // at 0x8
@@ -40,7 +40,7 @@ public:
     static bool mDisplayVersion;
     static EffectSystem instance;
 
-public:
+  public:
     static EffectSystem* GetInstance();
 
     EffectSystem();

@@ -8,15 +8,16 @@ namespace nw4r {
 namespace ut {
 
 class IOStream {
-public:
+  public:
     NW4R_UT_RTTI_DECL(IOStream);
 
-    typedef void (*StreamCallback)(s32 result, IOStream* pStream,
-                                   void* pCallbackArg);
+    typedef void (*StreamCallback)(s32 result, IOStream* pStream, void* pCallbackArg);
 
-public:
-    IOStream() : mAvailable(false), mCallback(NULL), mArg(NULL) {}
-    virtual ~IOStream() {} // at 0xC
+  public:
+    IOStream() : mAvailable(false), mCallback(NULL), mArg(NULL) {
+    }
+    virtual ~IOStream() {
+    } // at 0xC
 
     virtual void Close() = 0; // at 0x10
 
@@ -25,8 +26,7 @@ public:
                            void* pCallbackArg); // at 0x18
 
     virtual void Write(const void* pSrc, u32 size); // at 0x1C
-    virtual bool WriteAsync(const void* pSrc, u32 size,
-                            StreamCallback pCallback,
+    virtual bool WriteAsync(const void* pSrc, u32 size, StreamCallback pCallback,
                             void* pCallbackArg); // at 0x20
 
     virtual bool IsBusy() const; // at 0x24
@@ -49,7 +49,7 @@ public:
         return mAvailable;
     }
 
-protected:
+  protected:
     bool mAvailable;          // at 0x4
     s32 mAsyncResult;         // at 0x8
     StreamCallback mCallback; // at 0xC

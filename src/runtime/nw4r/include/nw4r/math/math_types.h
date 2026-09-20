@@ -22,7 +22,8 @@ struct _VEC2 {
 };
 
 struct VEC2 : _VEC2 {
-    VEC2() {}
+    VEC2() {
+    }
     VEC2(f32 fx, f32 fy) {
         x = fx;
         y = fy;
@@ -79,7 +80,8 @@ struct _VEC3 {
 };
 
 struct VEC3 : _VEC3 {
-    VEC3() {}
+    VEC3() {
+    }
     VEC3(f32 fx, f32 fy, f32 fz) {
         x = fx;
         y = fy;
@@ -181,7 +183,8 @@ struct _MTX33 {
 };
 
 struct MTX33 : _MTX33 {
-    MTX33() {}
+    MTX33() {
+    }
 
     // clang-format off
     MTX33(f32 f00, f32 f01, f32 f02,
@@ -219,7 +222,8 @@ struct MTX34 : _MTX34 {
     typedef f32 (*MtxRef)[4];
     typedef const f32 (*MtxRefConst)[4];
 
-    MTX34() {}
+    MTX34() {
+    }
 
     // clang-format off
     MTX34(f32 f00, f32 f01, f32 f02, f32 f03,
@@ -265,7 +269,8 @@ struct MTX44 : _MTX44 {
     typedef f32 (*Mtx44Ref)[4];
     typedef const f32 (*Mtx44RefConst)[4];
 
-    MTX44() {}
+    MTX44() {
+    }
 
     operator Mtx44Ref() {
         return mtx;
@@ -287,7 +292,8 @@ struct _QUAT {
 };
 
 struct QUAT : _QUAT {
-    QUAT() {}
+    QUAT() {
+    }
     QUAT(f32 fx, f32 fy, f32 fz, f32 fw) {
         x = fx;
         y = fy;
@@ -323,9 +329,11 @@ VEC3* VEC3Maximize(VEC3* pOut, const VEC3* pA, const VEC3* pB);
 VEC3* VEC3Minimize(VEC3* pOut, const VEC3* pA, const VEC3* pB);
 VEC3* VEC3TransformNormal(VEC3* pOut, const MTX34* pMtx, const VEC3* pVec);
 
-} } // namespace nw4r::math
+}
+} // namespace nw4r::math
 #include <nw4r/math/math_native.h>
-namespace nw4r { namespace math {
+namespace nw4r {
+namespace math {
 
 inline VEC3* VEC3Cross(VEC3* pOut, const VEC3* pA, const VEC3* pB) {
     PSVECCrossProduct(*pA, *pB, *pOut);
@@ -350,8 +358,7 @@ inline VEC3* VEC3Transform(VEC3* pOut, const MTX34* pMtx, const VEC3* pVec) {
     return pOut;
 }
 
-inline VEC3* VEC3TransformCoord(VEC3* pOut, const MTX34* pMtx,
-                                const VEC3* pVec) {
+inline VEC3* VEC3TransformCoord(VEC3* pOut, const MTX34* pMtx, const VEC3* pVec) {
     PSMTXMultVec(*pMtx, *pVec, *pOut);
     return pOut;
 }
@@ -394,8 +401,7 @@ inline u32 MTX34InvTranspose(MTX34* pOut, const MTX34* pIn) {
     return PSMTXInvXpose(*pIn, *pOut);
 }
 
-inline MTX34* MTX34LookAt(MTX34* pMtx, const VEC3* pPos, const VEC3* pUp,
-                          const VEC3* pTarget) {
+inline MTX34* MTX34LookAt(MTX34* pMtx, const VEC3* pPos, const VEC3* pUp, const VEC3* pTarget) {
     C_MTXLookAt(*pMtx, *pPos, *pUp, *pTarget);
     return pMtx;
 }
@@ -405,8 +411,7 @@ inline MTX34* MTX34Mult(MTX34* pOut, const MTX34* pA, const MTX34* pB) {
     return pOut;
 }
 
-inline MTX34* MTX34MultArray(MTX34* pOut, const MTX34* p1, const MTX34* pSrc,
-                             u32 len) {
+inline MTX34* MTX34MultArray(MTX34* pOut, const MTX34* p1, const MTX34* pSrc, u32 len) {
     PSMTXConcatArray(*p1, reinterpret_cast<const Mtx*>(pSrc), reinterpret_cast<Mtx*>(pOut), len);
     return pOut;
 }
@@ -416,15 +421,11 @@ inline MTX34* MTX34RotAxisRad(MTX34* pOut, const VEC3* pAxis, f32 frad) {
 }
 
 inline MTX34* MTX34RotXYZDeg(MTX34* pMtx, f32 dx, f32 dy, f32 dz) {
-    return MTX34RotXYZFIdx(pMtx, NW4R_MATH_DEG_TO_FIDX(dx),
-                           NW4R_MATH_DEG_TO_FIDX(dy),
-                           NW4R_MATH_DEG_TO_FIDX(dz));
+    return MTX34RotXYZFIdx(pMtx, NW4R_MATH_DEG_TO_FIDX(dx), NW4R_MATH_DEG_TO_FIDX(dy), NW4R_MATH_DEG_TO_FIDX(dz));
 }
 
 inline MTX34* MTX34RotXYZRad(MTX34* pMtx, f32 rx, f32 ry, f32 rz) {
-    return MTX34RotXYZFIdx(pMtx, NW4R_MATH_RAD_TO_FIDX(rx),
-                           NW4R_MATH_RAD_TO_FIDX(ry),
-                           NW4R_MATH_RAD_TO_FIDX(rz));
+    return MTX34RotXYZFIdx(pMtx, NW4R_MATH_RAD_TO_FIDX(rx), NW4R_MATH_RAD_TO_FIDX(ry), NW4R_MATH_RAD_TO_FIDX(rz));
 }
 
 inline MTX34* MTX34Scale(MTX34* pOut, const VEC3* pScale, const MTX34* pIn) {

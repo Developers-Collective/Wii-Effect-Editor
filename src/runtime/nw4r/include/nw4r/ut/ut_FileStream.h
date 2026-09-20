@@ -8,14 +8,16 @@ namespace nw4r {
 namespace ut {
 
 class FileStream : public IOStream {
-public:
+  public:
     NW4R_UT_RTTI_DECL(FileStream);
 
     enum SeekOrigin { SEEK_ORIGIN_BEG, SEEK_ORIGIN_CUR, SEEK_ORIGIN_END };
 
-public:
-    FileStream() {}
-    virtual ~FileStream() {} // at 0xC
+  public:
+    FileStream() {
+    }
+    virtual ~FileStream() {
+    } // at 0xC
 
     virtual u32 GetSize() const = 0; // at 0x40
 
@@ -30,10 +32,11 @@ public:
 
     virtual u32 Tell() const = 0; // at 0x58
 
-protected:
+  protected:
     class FilePosition {
-    public:
-        FilePosition() : mFileSize(0), mPosition(0) {}
+      public:
+        FilePosition() : mFileSize(0), mPosition(0) {
+        }
 
         u32 GetFileSize() const {
             return mFileSize;
@@ -50,7 +53,7 @@ protected:
         u32 Append(s32 offset);
         void Seek(s32 offset, u32 origin);
 
-    private:
+      private:
         u32 mFileSize; // at 0x0
         u32 mPosition; // at 0x4
     };

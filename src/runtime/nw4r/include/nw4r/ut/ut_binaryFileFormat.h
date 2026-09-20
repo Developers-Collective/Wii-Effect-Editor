@@ -19,8 +19,7 @@ struct BinaryFileHeader {
     u16 dataBlocks; // at 0xE
 };
 
-bool IsValidBinaryFile(const BinaryFileHeader* pHeader, u32 signature,
-                       u16 version, u16 minBlocks);
+bool IsValidBinaryFile(const BinaryFileHeader* pHeader, u32 signature, u16 version, u16 minBlocks);
 
 } // namespace ut
 } // namespace nw4r

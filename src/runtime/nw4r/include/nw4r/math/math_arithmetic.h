@@ -28,7 +28,9 @@ f32 FLog(f32 x);
  * Arithmetic functions
  *
  ******************************************************************************/
-inline f32 FrSqrt(f32 x) { return 1.0f / std::sqrt(x); }
+inline f32 FrSqrt(f32 x) {
+    return 1.0f / std::sqrt(x);
+}
 
 inline f32 FAbs(f32 x) {
     return std::fabs(x);
@@ -70,8 +72,7 @@ inline f32 FLog(f32 x) {
     return NW4R_MATH_QNAN;
 }
 
-inline f32 FSelect(f32 value, f32 ge_zero,
-                   f32 lt_zero) {
+inline f32 FSelect(f32 value, f32 ge_zero, f32 lt_zero) {
     return value >= 0.0f ? ge_zero : lt_zero;
 }
 

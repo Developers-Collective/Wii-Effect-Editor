@@ -7,10 +7,13 @@ namespace ut {
 namespace {
 
 class NonCopyable {
-protected:
-    NonCopyable() {}
-    NonCopyable(const NonCopyable& /* rOther */) {}
-    ~NonCopyable() {}
+  protected:
+    NonCopyable() {
+    }
+    NonCopyable(const NonCopyable& /* rOther */) {
+    }
+    ~NonCopyable() {
+    }
 };
 
 } // namespace

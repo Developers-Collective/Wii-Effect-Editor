@@ -10,28 +10,24 @@ namespace nw4r {
 namespace ut {
 
 class DvdLockedFileStream : public DvdFileStream {
-public:
+  public:
     NW4R_UT_RTTI_DECL(DvdLockedFileStream);
 
-public:
+  public:
     explicit DvdLockedFileStream(s32 entrynum);
     DvdLockedFileStream(const DVDFileInfo* pInfo, bool close);
     virtual ~DvdLockedFileStream(); // at 0xC
 
     virtual s32 Read(void* pDst, u32 size); // at 0x14
 
-    virtual bool ReadAsync(void* /* pDst */, u32 /* size */,
-                           StreamCallback /* pCallback */,
-                           void* /* pCallbackArg */) {
+    virtual bool ReadAsync(void* /* pDst */, u32 /* size */, StreamCallback /* pCallback */, void* /* pCallbackArg */) {
 
         return false;
     } // at 0x18
 
     virtual s32 Peek(void* pDst, u32 size); // at 0x5C
 
-    virtual bool PeekAsync(void* /* pDst */, u32 /* size */,
-                           StreamCallback /* pCallback */,
-                           void* /* pCallbackArg */) {
+    virtual bool PeekAsync(void* /* pDst */, u32 /* size */, StreamCallback /* pCallback */, void* /* pCallbackArg */) {
 
         return false;
     } // at 0x60
@@ -40,10 +36,10 @@ public:
         return false;
     } // at 0x28
 
-private:
+  private:
     static void InitMutex_();
 
-private:
+  private:
     bool mCancelFlag; // at 0x6F
 
     static bool sInitialized;

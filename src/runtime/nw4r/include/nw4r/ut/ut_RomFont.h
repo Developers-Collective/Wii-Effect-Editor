@@ -10,7 +10,7 @@ namespace nw4r {
 namespace ut {
 
 class RomFont : public Font {
-public:
+  public:
     RomFont();
     virtual ~RomFont(); // at 0x8
 
@@ -43,14 +43,14 @@ public:
     bool Load(void* pBuffer);
     static u32 GetRequireBufferSize();
 
-private:
+  private:
     static const int CHAR_PTR_BUFFER_SIZE = 4;
 
-private:
+  private:
     void MakeCharPtr(char* pBuffer, u16 ch) const;
     u16 HandleUndefinedChar(u16 ch) const;
 
-private:
+  private:
     OSFontHeader* mFontHeader; // at 0x10
     CharWidths mDefaultWidths; // at 0x14
     u16 mAlternateChar;        // at 0x18

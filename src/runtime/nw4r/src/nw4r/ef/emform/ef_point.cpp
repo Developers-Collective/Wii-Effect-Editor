@@ -5,9 +5,8 @@
 namespace nw4r {
 namespace ef {
 
-void EmitterFormPoint::Emission(Emitter* pEmitter, ParticleManager* pManager,
-                                int count, u32 flags, f32* pParams, u16 life,
-                                f32 lifeRnd, const math::MTX34* pSpace) {
+void EmitterFormPoint::Emission(Emitter* pEmitter, ParticleManager* pManager, int count, u32 flags, f32* pParams,
+                                u16 life, f32 lifeRnd, const math::MTX34* pSpace) {
 
 #pragma unused(flags)
 #pragma unused(pParams)

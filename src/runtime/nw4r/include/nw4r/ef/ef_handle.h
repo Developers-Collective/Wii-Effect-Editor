@@ -8,11 +8,11 @@ namespace nw4r {
 namespace ef {
 
 class HandleBase {
-private:
+  private:
     u32 mObjectID;         // at 0x0
     LinkedObject* mObject; // at 0x4
 
-public:
+  public:
     HandleBase();
     HandleBase(const HandleBase& rOther);
     HandleBase(LinkedObject* pObject);
@@ -25,10 +25,13 @@ public:
 };
 
 template <typename T> class Handle : public HandleBase {
-public:
-    Handle() {}
-    Handle(const Handle& rOther) : HandleBase(rOther) {}
-    Handle(T* pObject) : HandleBase(static_cast<LinkedObject*>(pObject)) {}
+  public:
+    Handle() {
+    }
+    Handle(const Handle& rOther) : HandleBase(rOther) {
+    }
+    Handle(T* pObject) : HandleBase(static_cast<LinkedObject*>(pObject)) {
+    }
 
     Handle& operator=(T* pObject) {
         static_cast<HandleBase&>(*this) = static_cast<LinkedObject*>(pObject);
@@ -38,8 +41,7 @@ public:
     bool IsAlive() const {
         ReferencedObject::LifeStatus status = GetLifeStatus();
 
-        return status == ReferencedObject::NW4R_EF_LS_ACTIVE ||
-               status == ReferencedObject::NW4R_EF_LS_WAIT;
+        return status == ReferencedObject::NW4R_EF_LS_ACTIVE || status == ReferencedObject::NW4R_EF_LS_WAIT;
     }
 
     T* GetPtr() const {

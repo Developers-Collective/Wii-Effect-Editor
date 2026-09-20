@@ -20,8 +20,9 @@ class LinkListImpl;
 class LinkListNode : private NonCopyable {
     friend class detail::LinkListImpl;
 
-public:
-    LinkListNode() : mNext(NULL), mPrev(NULL) {}
+  public:
+    LinkListNode() : mNext(NULL), mPrev(NULL) {
+    }
 
     LinkListNode* GetNext() const {
         return mNext;
@@ -30,7 +31,7 @@ public:
         return mPrev;
     }
 
-private:
+  private:
     LinkListNode* mNext; // at 0x0
     LinkListNode* mPrev; // at 0x4
 };
@@ -43,7 +44,7 @@ namespace detail {
  *
  ******************************************************************************/
 class LinkListImpl : private NonCopyable {
-public:
+  public:
     // Forward declarations
     class ConstIterator;
 
@@ -54,9 +55,11 @@ public:
         friend class LinkListImpl;
         friend class ConstIterator;
 
-    public:
-        Iterator() : mNode(NULL) {}
-        explicit Iterator(LinkListNode* pNode) : mNode(pNode) {}
+      public:
+        Iterator() : mNode(NULL) {
+        }
+        explicit Iterator(LinkListNode* pNode) : mNode(pNode) {
+        }
 
         Iterator& operator++() {
             mNode = mNode->GetNext();
@@ -72,12 +75,11 @@ public:
             return mNode;
         }
 
-        friend bool operator==(LinkListImpl::Iterator lhs,
-                               LinkListImpl::Iterator rhs) {
+        friend bool operator==(LinkListImpl::Iterator lhs, LinkListImpl::Iterator rhs) {
             return lhs.mNode == rhs.mNode;
         }
 
-    private:
+      private:
         LinkListNode* mNode; // at 0x0
     };
 
@@ -87,8 +89,9 @@ public:
     class ConstIterator {
         friend class LinkListImpl;
 
-    public:
-        explicit ConstIterator(Iterator it) : mNode(it.mNode) {}
+      public:
+        explicit ConstIterator(Iterator it) : mNode(it.mNode) {
+        }
 
         ConstIterator& operator++() {
             mNode = mNode->GetNext();
@@ -104,16 +107,15 @@ public:
             return mNode;
         }
 
-        friend bool operator==(LinkListImpl::ConstIterator lhs,
-                               LinkListImpl::ConstIterator rhs) {
+        friend bool operator==(LinkListImpl::ConstIterator lhs, LinkListImpl::ConstIterator rhs) {
             return lhs.mNode == rhs.mNode;
         }
 
-    private:
+      private:
         LinkListNode* mNode; // at 0x0
     };
 
-protected:
+  protected:
     static Iterator GetIteratorFromPointer(LinkListNode* pNode) {
         return Iterator(pNode);
     }
@@ -136,7 +138,7 @@ protected:
     Iterator Erase(LinkListNode* pNode);
     Iterator Erase(Iterator begin, Iterator end);
 
-public:
+  public:
     u32 GetSize() const {
         return mSize;
     }
@@ -153,14 +155,14 @@ public:
 
     void Clear();
 
-private:
+  private:
     void Initialize_() {
         mSize = 0;
         mNode.mNext = &mNode;
         mNode.mPrev = &mNode;
     }
 
-private:
+  private:
     u32 mSize;          // at 0x0
     LinkListNode mNode; // at 0x4
 };
@@ -171,8 +173,9 @@ private:
  *
  ******************************************************************************/
 template <typename TIter> class ReverseIterator {
-public:
-    explicit ReverseIterator(TIter it) : mCurrent(it) {}
+  public:
+    explicit ReverseIterator(TIter it) : mCurrent(it) {
+    }
 
     TIter GetBase() const {
         return mCurrent;
@@ -192,17 +195,15 @@ public:
         return *--it;
     }
 
-    friend bool operator==(const ReverseIterator& rLhs,
-                           const ReverseIterator& rRhs) {
+    friend bool operator==(const ReverseIterator& rLhs, const ReverseIterator& rRhs) {
         return rLhs.mCurrent == rRhs.mCurrent;
     }
 
-    friend bool operator!=(const ReverseIterator& rLhs,
-                           const ReverseIterator& rRhs) {
+    friend bool operator!=(const ReverseIterator& rLhs, const ReverseIterator& rRhs) {
         return !(rLhs.mCurrent == rRhs.mCurrent);
     }
 
-private:
+  private:
     TIter mCurrent; // at 0x0
 };
 
@@ -214,7 +215,7 @@ private:
  *
  ******************************************************************************/
 template <typename T, int Ofs> class LinkList : public detail::LinkListImpl {
-public:
+  public:
     // Forward declarations
     class ConstIterator;
 
@@ -225,13 +226,15 @@ public:
         friend class LinkList;
         friend class ConstIterator;
 
-    public:
+      public:
         // Element type must be visible to ReverseIterator
         typedef T TElem;
 
-    public:
-        Iterator() : mIterator(NULL) {}
-        explicit Iterator(LinkListImpl::Iterator it) : mIterator(it) {}
+      public:
+        Iterator() : mIterator(NULL) {
+        }
+        explicit Iterator(LinkListImpl::Iterator it) : mIterator(it) {
+        }
 
         Iterator& operator++() {
             ++mIterator;
@@ -265,7 +268,7 @@ public:
             return !(lhs == rhs);
         }
 
-    private:
+      private:
         LinkListImpl::Iterator mIterator; // at 0x0
     };
 
@@ -275,13 +278,15 @@ public:
     class ConstIterator {
         friend class LinkList;
 
-    public:
+      public:
         // Element type must be visible to ReverseIterator
         typedef T TElem;
 
-    public:
-        explicit ConstIterator(LinkListImpl::Iterator it) : mIterator(it) {}
-        explicit ConstIterator(Iterator it) : mIterator(it.mIterator) {}
+      public:
+        explicit ConstIterator(LinkListImpl::Iterator it) : mIterator(it) {
+        }
+        explicit ConstIterator(Iterator it) : mIterator(it.mIterator) {
+        }
 
         ConstIterator& operator++() {
             ++mIterator;
@@ -315,17 +320,18 @@ public:
             return !(lhs == rhs);
         }
 
-    private:
+      private:
         LinkListImpl::ConstIterator mIterator; // at 0x0
     };
 
-public:
+  public:
     // Shorthand names for reverse iterator types
     typedef detail::ReverseIterator<Iterator> RevIterator;
     typedef detail::ReverseIterator<ConstIterator> ConstRevIterator;
 
-public:
-    LinkList() {}
+  public:
+    LinkList() {
+    }
 
     Iterator GetBeginIter() {
         return Iterator(LinkListImpl::GetBeginIter());
@@ -354,8 +360,7 @@ public:
     }
 
     Iterator Insert(Iterator it, T* pElem) {
-        return Iterator(
-            LinkListImpl::Insert(it.mIterator, GetNodeFromPointer(pElem)));
+        return Iterator(LinkListImpl::Insert(it.mIterator, GetNodeFromPointer(pElem)));
     }
 
     Iterator Erase(T* pElem) {
@@ -392,8 +397,7 @@ public:
     }
 
     static LinkListNode* GetNodeFromPointer(T* pElem) {
-        return reinterpret_cast<LinkListNode*>(reinterpret_cast<char*>(pElem) +
-                                               Ofs);
+        return reinterpret_cast<LinkListNode*>(reinterpret_cast<char*>(pElem) + Ofs);
     }
 
     static T* GetPointerFromNode(LinkListNode* pNode) {
@@ -401,8 +405,7 @@ public:
     }
 
     static const T* GetPointerFromNode(const LinkListNode* pNode) {
-        return reinterpret_cast<const T*>(reinterpret_cast<const char*>(pNode) -
-                                          Ofs);
+        return reinterpret_cast<const T*>(reinterpret_cast<const char*>(pNode) - Ofs);
     }
 };
 
@@ -417,15 +420,14 @@ public:
 /**
  * Declare typedef for linked-list specialization.
  */
-#define NW4R_UT_LINKLIST_TYPEDEF_DECL(T)                                       \
-    typedef nw4r::ut::LinkList<T, offsetof(T, node)> T##List;
+#define NW4R_UT_LINKLIST_TYPEDEF_DECL(T) typedef nw4r::ut::LinkList<T, offsetof(T, node)> T##List;
 
 /**
  * Declare typedef for linked-list specialization.
  *
  * Use the specified link node (name suffix) for classes with multiple nodes.
  */
-#define NW4R_UT_LINKLIST_TYPEDEF_DECL_EX(T, SUFFIX)                            \
+#define NW4R_UT_LINKLIST_TYPEDEF_DECL_EX(T, SUFFIX)                                                                    \
     typedef nw4r::ut::LinkList<T, offsetof(T, node##SUFFIX)> T##SUFFIX##List;
 
 /**
@@ -438,16 +440,14 @@ public:
  *
  * Use the specified link node (name suffix) for classes with multiple nodes.
  */
-#define NW4R_UT_LINKLIST_NODE_DECL_EX(SUFFIX)                                  \
-    nw4r::ut::LinkListNode node##SUFFIX
+#define NW4R_UT_LINKLIST_NODE_DECL_EX(SUFFIX) nw4r::ut::LinkListNode node##SUFFIX
 
 /**
  * Explicitly instantiate a linked list specialization.
  * (RESERVED FOR MATCHING DECOMP HACKS)
  */
 #if !defined(NONMATCHING)
-#define NW4R_UT_LINKLIST_TYPEDEF_FORCE(T)                                      \
-    template struct nw4r::ut::LinkList<T, offsetof(T, node)>
+#define NW4R_UT_LINKLIST_TYPEDEF_FORCE(T) template struct nw4r::ut::LinkList<T, offsetof(T, node)>
 #else
 #define NW4R_UT_LINKLIST_TYPEDEF_FORCE(T)
 #endif
@@ -459,15 +459,14 @@ public:
  * @param LIST Reference to list
  * @param ... Statement(s) to execute
  */
-#define NW4R_UT_LINKLIST_FOREACH(NAME, LIST, ...)                              \
-    {                                                                          \
-        typedef DECLTYPE((LIST).GetBeginIter()) IterType;                      \
-                                                                               \
-        for (IterType NAME = (LIST).GetBeginIter();                            \
-             NAME != (LIST).GetEndIter(); ++NAME) {                            \
-                                                                               \
-            __VA_ARGS__;                                                       \
-        }                                                                      \
+#define NW4R_UT_LINKLIST_FOREACH(NAME, LIST, ...)                                                                      \
+    {                                                                                                                  \
+        typedef DECLTYPE((LIST).GetBeginIter()) IterType;                                                              \
+                                                                                                                       \
+        for (IterType NAME = (LIST).GetBeginIter(); NAME != (LIST).GetEndIter(); ++NAME) {                             \
+                                                                                                                       \
+            __VA_ARGS__;                                                                                               \
+        }                                                                                                              \
     }
 
 /**
@@ -477,16 +476,15 @@ public:
  * @param LIST Reference to list
  * @param ... Statement(s) to execute
  */
-#define NW4R_UT_LINKLIST_FOREACH_SAFE(NAME, LIST, ...)                         \
-    {                                                                          \
-        typedef DECLTYPE((LIST).GetBeginIter()) IterType;                      \
-                                                                               \
-        for (IterType __impl__ = (LIST).GetBeginIter();                        \
-             __impl__ != (LIST).GetEndIter();) {                               \
-                                                                               \
-            IterType NAME = __impl__++;                                        \
-            __VA_ARGS__;                                                       \
-        }                                                                      \
+#define NW4R_UT_LINKLIST_FOREACH_SAFE(NAME, LIST, ...)                                                                 \
+    {                                                                                                                  \
+        typedef DECLTYPE((LIST).GetBeginIter()) IterType;                                                              \
+                                                                                                                       \
+        for (IterType __impl__ = (LIST).GetBeginIter(); __impl__ != (LIST).GetEndIter();) {                            \
+                                                                                                                       \
+            IterType NAME = __impl__++;                                                                                \
+            __VA_ARGS__;                                                                                               \
+        }                                                                                                              \
     }
 
 #endif

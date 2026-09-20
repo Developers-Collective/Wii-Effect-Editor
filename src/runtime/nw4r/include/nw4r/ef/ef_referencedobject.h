@@ -11,7 +11,7 @@ namespace nw4r {
 namespace ef {
 
 class ReferencedObject : public LinkedObject {
-public:
+  public:
     enum LifeStatus {
         NW4R_EF_LS_CLOSED,
         NW4R_EF_LS_ACTIVE,
@@ -19,16 +19,18 @@ public:
         NW4R_EF_LS_CLOSING,
     };
 
-protected:
+  protected:
     LifeStatus mLifeStatus; // at 0xC
     u32 mRefCount;          // at 0x10
 
-public:
+  public:
     ut::Link mActivityLink; // at 0x14
 
-public:
-    virtual void SendClosing() {} // at 0x8
-    virtual void DestroyFunc() {} // at 0xC
+  public:
+    virtual void SendClosing() {
+    } // at 0x8
+    virtual void DestroyFunc() {
+    } // at 0xC
 
     void ChangeLifeStatus(LifeStatus status) {
         mLifeStatus = status;

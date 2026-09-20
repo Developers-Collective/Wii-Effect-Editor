@@ -11,16 +11,16 @@ namespace ut {
 struct BinaryFileHeader;
 
 class ResFont : public detail::ResFontBase {
-public:
+  public:
     ResFont();
     virtual ~ResFont(); // at 0x8
 
     bool SetResource(void* pBuffer);
 
-private:
+  private:
     static FontInformation* Rebuild(BinaryFileHeader* pHeader);
 
-private:
+  private:
     static const u32 SIGNATURE = FOURCC('R', 'F', 'N', 'T');
     static const u32 SIGNATURE_UNPACKED = FOURCC('R', 'F', 'N', 'U');
 

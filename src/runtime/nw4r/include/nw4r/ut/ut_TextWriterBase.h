@@ -14,10 +14,10 @@ namespace nw4r {
 namespace ut {
 
 template <typename T> class TextWriterBase : public CharWriter {
-public:
+  public:
     typedef TagProcessorBase<T> TagProcessorType;
 
-public:
+  public:
     enum DrawFlag {
         // Align text lines
         DRAWFLAG_ALIGN_TEXT_BASELINE = 0,
@@ -35,19 +35,15 @@ public:
         DRAWFLAG_ALIGN_V_TOP = (1 << 9),
 
         // Mask constants
-        DRAWFLAG_MASK_ALIGN_TEXT = DRAWFLAG_ALIGN_TEXT_BASELINE |
-                                   DRAWFLAG_ALIGN_TEXT_CENTER |
-                                   DRAWFLAG_ALIGN_TEXT_RIGHT,
+        DRAWFLAG_MASK_ALIGN_TEXT =
+            DRAWFLAG_ALIGN_TEXT_BASELINE | DRAWFLAG_ALIGN_TEXT_CENTER | DRAWFLAG_ALIGN_TEXT_RIGHT,
 
-        DRAWFLAG_MASK_ALIGN_H = DRAWFLAG_ALIGN_H_BASELINE |
-                                DRAWFLAG_ALIGN_H_CENTER |
-                                DRAWFLAG_ALIGN_H_RIGHT,
+        DRAWFLAG_MASK_ALIGN_H = DRAWFLAG_ALIGN_H_BASELINE | DRAWFLAG_ALIGN_H_CENTER | DRAWFLAG_ALIGN_H_RIGHT,
 
-        DRAWFLAG_MASK_ALIGN_V = DRAWFLAG_ALIGN_V_BASELINE |
-                                DRAWFLAG_ALIGN_V_CENTER | DRAWFLAG_ALIGN_V_TOP,
+        DRAWFLAG_MASK_ALIGN_V = DRAWFLAG_ALIGN_V_BASELINE | DRAWFLAG_ALIGN_V_CENTER | DRAWFLAG_ALIGN_V_TOP,
     };
 
-public:
+  public:
     TextWriterBase();
     ~TextWriterBase();
 
@@ -123,14 +119,12 @@ public:
         return mFormatBufferSize;
     }
 
-private:
+  private:
     static const int DEFAULT_FORMAT_BUFFER_SIZE = 256;
 
-    static const u32 DRAWFLAG_MASK_ALL = DRAWFLAG_MASK_ALIGN_TEXT |
-                                         DRAWFLAG_MASK_ALIGN_H |
-                                         DRAWFLAG_MASK_ALIGN_V;
+    static const u32 DRAWFLAG_MASK_ALL = DRAWFLAG_MASK_ALIGN_TEXT | DRAWFLAG_MASK_ALIGN_H | DRAWFLAG_MASK_ALIGN_V;
 
-private:
+  private:
     bool IsDrawFlagSet(u32 mask, u32 flag) const {
         return (mDrawFlag & mask) == flag;
     }
@@ -141,7 +135,7 @@ private:
     f32 PrintImpl(const T* pStr, int len);
     f32 AdjustCursor(f32* pX, f32* pY, const T* pStr, int len);
 
-private:
+  private:
     f32 mWidthLimit;                    // at 0x4C
     f32 mCharSpace;                     // at 0x50
     f32 mLineSpace;                     // at 0x54
@@ -154,18 +148,13 @@ private:
     static TagProcessorBase<T> mDefaultTagProcessor;
 };
 
-template <>
-inline int TextWriterBase<char>::VSNPrintf(char* pBuffer, u32 count,
-                                           const char* pStr,
-                                           std::va_list args) {
+template <> inline int TextWriterBase<char>::VSNPrintf(char* pBuffer, u32 count, const char* pStr, std::va_list args) {
 
     return std::vsnprintf(pBuffer, count, pStr, args);
 }
 
 template <>
-inline int TextWriterBase<wchar_t>::VSNPrintf(wchar_t* pBuffer, u32 count,
-                                              const wchar_t* pStr,
-                                              std::va_list args) {
+inline int TextWriterBase<wchar_t>::VSNPrintf(wchar_t* pBuffer, u32 count, const wchar_t* pStr, std::va_list args) {
 
     return std::vswprintf(pBuffer, count, pStr, args);
 }

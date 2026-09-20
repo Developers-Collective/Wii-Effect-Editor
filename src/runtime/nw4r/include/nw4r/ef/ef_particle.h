@@ -36,7 +36,7 @@ struct ParticleParameterDesc {
 };
 
 class ParticleParameter {
-public:
+  public:
     GXColor mColor[COLOR_LAYER_MAX][COLOR_IDX_MAX]; // at 0x0
     math::VEC2 mSize;                               // at 0x10
     math::VEC2 mScale;                              // at 0x18
@@ -57,14 +57,14 @@ public:
     math::VEC3 mPrevPosition;                       // at 0x98
     f32 mMomentum;                                  // at 0xA4
 
-public:
+  public:
     void Initialize(ParticleParameterDesc* pDesc, ParticleManager* pManager);
 };
 
 class Particle : public ReferencedObject {
     friend class ParticleManager;
 
-public:
+  public:
     ParticleParameter mParameter;      // at 0x20
     ParticleManager* mParticleManager; // at 0xC8
     math::VEC3 mPrevAxis;              // at 0xCC
@@ -74,16 +74,14 @@ public:
     u16 mLife;                         // at 0xE0
     u16 mCalcRemain;                   // at 0xE2
 
-public:
+  public:
     Particle();
     ~Particle();
 
     virtual void SendClosing(); // at 0x8
     virtual void DestroyFunc(); // at 0xC
-    virtual bool Initialize(u16 life, math::VEC3 pos, math::VEC3 vel,
-                            ParticleManager* pManager,
-                            const math::MTX34* pSpace, float momentum,
-                            const EmitterInheritSetting* pSetting,
+    virtual bool Initialize(u16 life, math::VEC3 pos, math::VEC3 vel, ParticleManager* pManager,
+                            const math::MTX34* pSpace, float momentum, const EmitterInheritSetting* pSetting,
                             Particle* pReferencePtcl); // at 0x10
 
     ParticleParameter* GetParticleParameter() {
@@ -107,8 +105,7 @@ public:
         f32 sy;
 
         switch (mParticleManager->mResource->GetEmitterDrawSetting()->mFlags &
-                (EmitterDrawSetting::FLAG_XY_SAME_SIZE |
-                 EmitterDrawSetting::FLAG_XY_SAME_SCALE)) {
+                (EmitterDrawSetting::FLAG_XY_SAME_SIZE | EmitterDrawSetting::FLAG_XY_SAME_SCALE)) {
 
         case EmitterDrawSetting::FLAG_XY_SAME_SCALE: {
             sy = mParameter.mSize.y * mParameter.mScale.x;
@@ -120,8 +117,7 @@ public:
             break;
         }
 
-        case (EmitterDrawSetting::FLAG_XY_SAME_SIZE |
-              EmitterDrawSetting::FLAG_XY_SAME_SCALE): {
+        case (EmitterDrawSetting::FLAG_XY_SAME_SIZE | EmitterDrawSetting::FLAG_XY_SAME_SCALE): {
             sy = mParameter.mSize.x * mParameter.mScale.x;
             break;
         }
@@ -160,12 +156,9 @@ public:
             scale = 2;
         }
 
-        u8 reverse =
-            (mParameter.mTextureReverse >> (layer * NUM_OF_TEX_REVERSE) &
-             TEX_REVERSE_ST);
+        u8 reverse = (mParameter.mTextureReverse >> (layer * NUM_OF_TEX_REVERSE) & TEX_REVERSE_ST);
 
-        if (static_cast<u32>(reverse) == TEX_REVERSE_S ||
-            static_cast<u32>(reverse) == TEX_REVERSE_ST) {
+        if (static_cast<u32>(reverse) == TEX_REVERSE_S || static_cast<u32>(reverse) == TEX_REVERSE_ST) {
             scale -= scale * 2;
         }
 
@@ -178,12 +171,9 @@ public:
             scale = 2;
         }
 
-        u8 reverse =
-            (mParameter.mTextureReverse >> (layer * NUM_OF_TEX_REVERSE) &
-             TEX_REVERSE_ST);
+        u8 reverse = (mParameter.mTextureReverse >> (layer * NUM_OF_TEX_REVERSE) & TEX_REVERSE_ST);
 
-        if (static_cast<u32>(reverse) == TEX_REVERSE_T ||
-            static_cast<u32>(reverse) == TEX_REVERSE_ST) {
+        if (static_cast<u32>(reverse) == TEX_REVERSE_T || static_cast<u32>(reverse) == TEX_REVERSE_ST) {
             scale -= scale * 2;
         }
 
@@ -193,12 +183,9 @@ public:
     int Draw_GetTextureTransS(int layer) const {
         int trans = 0;
 
-        u8 reverse =
-            (mParameter.mTextureReverse >> (layer * NUM_OF_TEX_REVERSE) &
-             TEX_REVERSE_ST);
+        u8 reverse = (mParameter.mTextureReverse >> (layer * NUM_OF_TEX_REVERSE) & TEX_REVERSE_ST);
 
-        if (static_cast<u32>(reverse) == TEX_REVERSE_S ||
-            static_cast<u32>(reverse) == TEX_REVERSE_ST) {
+        if (static_cast<u32>(reverse) == TEX_REVERSE_S || static_cast<u32>(reverse) == TEX_REVERSE_ST) {
             trans = 1;
         }
 
@@ -211,12 +198,9 @@ public:
     int Draw_GetTextureTransT(int layer) const {
         int trans = 0;
 
-        u8 reverse =
-            (mParameter.mTextureReverse >> (layer * NUM_OF_TEX_REVERSE) &
-             TEX_REVERSE_ST);
+        u8 reverse = (mParameter.mTextureReverse >> (layer * NUM_OF_TEX_REVERSE) & TEX_REVERSE_ST);
 
-        if (static_cast<u32>(reverse) == TEX_REVERSE_T ||
-            static_cast<u32>(reverse) == TEX_REVERSE_ST) {
+        if (static_cast<u32>(reverse) == TEX_REVERSE_T || static_cast<u32>(reverse) == TEX_REVERSE_ST) {
             trans = 1;
         }
 
@@ -252,7 +236,7 @@ public:
         return mParameter.mPosition;
     }
 
-private:
+  private:
     enum TextureReverseFlag {
         TEX_REVERSE_S = (1 << 0),
         TEX_REVERSE_T = (1 << 1),

@@ -90,16 +90,14 @@ void List_Remove(List* pList, void* pObject) {
     if (pLink->prevObject == NULL) {
         pList->headObject = NW4R_UT_LIST_GET_LINK(*pList, pObject)->nextObject;
     } else {
-        NW4R_UT_LIST_GET_LINK(*pList, pLink->prevObject)->nextObject =
-            pLink->nextObject;
+        NW4R_UT_LIST_GET_LINK(*pList, pLink->prevObject)->nextObject = pLink->nextObject;
     }
 
     // Fix next node relationship
     if (pLink->nextObject == NULL) {
         pList->tailObject = pLink->prevObject;
     } else {
-        NW4R_UT_LIST_GET_LINK(*pList, pLink->nextObject)->prevObject =
-            pLink->prevObject;
+        NW4R_UT_LIST_GET_LINK(*pList, pLink->nextObject)->prevObject = pLink->prevObject;
     }
 
     pLink->prevObject = NULL;

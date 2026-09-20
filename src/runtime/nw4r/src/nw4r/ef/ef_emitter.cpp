@@ -8,20 +8,20 @@
 namespace nw4r {
 namespace ef {
 
-Emitter::Emitter() : mActivityList(offsetof(ParticleManager, mActivityLink)) {}
+Emitter::Emitter() : mActivityList(offsetof(ParticleManager, mActivityLink)) {
+}
 
-Emitter::~Emitter() {}
+Emitter::~Emitter() {
+}
 
 u32 Emitter::RetireParticleAll() {
     u32 num = 0;
     void* pArray[NW4R_EF_MAX_PARTICLEMANAGER];
 
-    u16 size = UtlistToArray(&mActivityList.mActiveList, pArray,
-                             UtlistSize(&mActivityList.mActiveList));
+    u16 size = UtlistToArray(&mActivityList.mActiveList, pArray, UtlistSize(&mActivityList.mActiveList));
 
     for (u16 i = 0; i < size; i++) {
-        ParticleManager* pManager =
-            reinterpret_cast<ParticleManager*>(pArray[i]);
+        ParticleManager* pManager = reinterpret_cast<ParticleManager*>(pArray[i]);
 
         num += pManager->RetireParticleAll();
     }
@@ -47,15 +47,13 @@ void Emitter::DestroyFunc() {
     RetireParticleManagerAll();
 
     if (mParameter.mComFlags & EmitterDesc::CMN_FLAG_SYNC_LIFE) {
-        u16 size =
-            UtlistToArray(&mManagerEF->mActivityList.mActiveList, pArray,
-                          UtlistSize(&mManagerEF->mActivityList.mActiveList));
+        u16 size = UtlistToArray(&mManagerEF->mActivityList.mActiveList, pArray,
+                                 UtlistSize(&mManagerEF->mActivityList.mActiveList));
 
         for (u16 i = 0; i < size; i++) {
             Emitter* pEmitter = reinterpret_cast<Emitter*>(pArray[i]);
 
-            for (Emitter* pIt = pEmitter->mParent; pIt != NULL;
-                 pIt = pIt->mParent) {
+            for (Emitter* pIt = pEmitter->mParent; pIt != NULL; pIt = pIt->mParent) {
 
                 if (pIt != this) {
                     continue;
@@ -97,12 +95,10 @@ u32 Emitter::RetireParticleManagerAll() {
     u32 num = 0;
     void* pArray[NW4R_EF_MAX_PARTICLEMANAGER];
 
-    u16 size = UtlistToArray(&mActivityList.mActiveList, pArray,
-                             UtlistSize(&mActivityList.mActiveList));
+    u16 size = UtlistToArray(&mActivityList.mActiveList, pArray, UtlistSize(&mActivityList.mActiveList));
 
     for (u16 i = 0; i < size; i++) {
-        ParticleManager* pManager =
-            reinterpret_cast<ParticleManager*>(pArray[i]);
+        ParticleManager* pManager = reinterpret_cast<ParticleManager*>(pArray[i]);
 
         if (pManager->GetLifeStatus() != NW4R_EF_LS_ACTIVE) {
             continue;
@@ -126,7 +122,7 @@ void Emitter::UpdateDatas(EmitterResource* pResource) {
 
 bool Emitter::InitializeDatas(EmitterResource* pResource, Effect* pEffect) {
     mTick = 0;
-    mLastGlobalPosition = math::VEC3(std::numeric_limits<float>::quiet_NaN(),0,0);
+    mLastGlobalPosition = math::VEC3(std::numeric_limits<float>::quiet_NaN(), 0, 0);
     mPreviousGlobalPosition = mLastGlobalPosition;
     mLifeStatus = NW4R_EF_LS_ACTIVE;
     mResource = pResource;
@@ -157,8 +153,7 @@ bool Emitter::InitializeDatas(EmitterResource* pResource, Effect* pEffect) {
     mParameter.mScale = pDesc->scale;
     mParameter.mRotate = pDesc->rotate;
 
-    mParameter.mInherit = EmitterParameter::INHERIT_FLAG_SCALE |
-                          EmitterParameter::INHERIT_FLAG_ROT;
+    mParameter.mInherit = EmitterParameter::INHERIT_FLAG_SCALE | EmitterParameter::INHERIT_FLAG_ROT;
 
     mParameter.mInheritTranslate = 100;
 
@@ -197,8 +192,7 @@ bool Emitter::InitializeDatas(EmitterResource* pResource, Effect* pEffect) {
     return true;
 }
 
-bool Emitter::Initialize(Effect* pParent, EmitterResource* pResource,
-                         u8 drawWeight) {
+bool Emitter::Initialize(Effect* pParent, EmitterResource* pResource, u8 drawWeight) {
 
     (void)pResource->GetEmitterDesc(); // unused
 
@@ -209,8 +203,7 @@ bool Emitter::Initialize(Effect* pParent, EmitterResource* pResource,
     InitializeDatas(pResource, pParent);
     mManagerEF = pParent;
 
-    ParticleManager* pManager =
-        pParent->mManagerES->GetMemoryManager()->AllocParticleManager();
+    ParticleManager* pManager = pParent->mManagerES->GetMemoryManager()->AllocParticleManager();
 
     if (pManager == NULL) {
         return false;
@@ -225,20 +218,17 @@ bool Emitter::Initialize(Effect* pParent, EmitterResource* pResource,
 
     pManager->mFlag = 0;
 
-    if (pResource->GetEmitterDesc()->commonFlag &
-        EmitterDesc::CMN_FLAG_INHERIT_PTCL_SCALE) {
+    if (pResource->GetEmitterDesc()->commonFlag & EmitterDesc::CMN_FLAG_INHERIT_PTCL_SCALE) {
 
         pManager->mFlag |= ParticleManager::FLAG_MTX_INHERIT_SCALE;
     }
 
-    if (pResource->GetEmitterDesc()->commonFlag &
-        EmitterDesc::CMN_FLAG_INHERIT_PTCL_ROT) {
+    if (pResource->GetEmitterDesc()->commonFlag & EmitterDesc::CMN_FLAG_INHERIT_PTCL_ROT) {
 
         pManager->mFlag |= ParticleManager::FLAG_MTX_INHERIT_ROT;
     }
 
-    pManager->mInheritTranslate =
-        pResource->GetEmitterDesc()->inheritPtclTranslate;
+    pManager->mInheritTranslate = pResource->GetEmitterDesc()->inheritPtclTranslate;
 
     pManager->mWeight = drawWeight;
     mManagerEF->ParticleManagerAdd(pManager);
@@ -246,12 +236,10 @@ bool Emitter::Initialize(Effect* pParent, EmitterResource* pResource,
     return true;
 }
 
-Emitter* Emitter::CreateEmitter(EmitterResource* pResource,
-                                EmitterInheritSetting* pSetting,
-                                Particle* pParticle, u16 calcRemain) {
+Emitter* Emitter::CreateEmitter(EmitterResource* pResource, EmitterInheritSetting* pSetting, Particle* pParticle,
+                                u16 calcRemain) {
 
-    Emitter* pEmitter =
-        mManagerEF->CreateEmitter(pResource, pSetting->weight, 0);
+    Emitter* pEmitter = mManagerEF->CreateEmitter(pResource, pSetting->weight, 0);
 
     if (pEmitter == NULL) {
         return NULL;
@@ -262,20 +250,17 @@ Emitter* Emitter::CreateEmitter(EmitterResource* pResource,
     pEmitter->mParent->Ref();
     pEmitter->mParameter.mInherit = 0;
 
-    if (mResource->GetEmitterDesc()->commonFlag &
-        EmitterDesc::CMN_FLAG_EMIT_INHERIT_SCALE) {
+    if (mResource->GetEmitterDesc()->commonFlag & EmitterDesc::CMN_FLAG_EMIT_INHERIT_SCALE) {
 
         pEmitter->mParameter.mInherit |= EmitterParameter::INHERIT_FLAG_SCALE;
     }
 
-    if (mResource->GetEmitterDesc()->commonFlag &
-        EmitterDesc::CMN_FLAG_EMIT_INHERIT_ROT) {
+    if (mResource->GetEmitterDesc()->commonFlag & EmitterDesc::CMN_FLAG_EMIT_INHERIT_ROT) {
 
         pEmitter->mParameter.mInherit |= EmitterParameter::INHERIT_FLAG_ROT;
     }
 
-    pEmitter->mParameter.mInheritTranslate =
-        mResource->GetEmitterDesc()->inheritChildEmitTranslate;
+    pEmitter->mParameter.mInheritTranslate = mResource->GetEmitterDesc()->inheritChildEmitTranslate;
 
     if (pParticle != NULL) {
         math::VEC3 transSave = pEmitter->mParameter.mTranslate;
@@ -289,8 +274,7 @@ Emitter* Emitter::CreateEmitter(EmitterResource* pResource,
         math::MTX34 tmp;
 
         math::MTX34Identity(&mtx);
-        math::MTX34RotXYZRad(&mtx, pEmitter->mParameter.mRotate.x,
-                             pEmitter->mParameter.mRotate.y,
+        math::MTX34RotXYZRad(&mtx, pEmitter->mParameter.mRotate.x, pEmitter->mParameter.mRotate.y,
                              pEmitter->mParameter.mRotate.z);
         math::MTX34Scale(&mtx, &mtx, &pEmitter->mParameter.mScale);
 
@@ -302,8 +286,7 @@ Emitter* Emitter::CreateEmitter(EmitterResource* pResource,
         math::MTX34Mult(&mtx, &mtx, &tmp);
 
         math::MTX34Trans(&mtx, &mtx, &pParticle->mParameter.mPosition);
-        math::MTX34RotXYZRad(&tmp, pEmitter->mParameter.mRotate.x,
-                             pEmitter->mParameter.mRotate.y,
+        math::MTX34RotXYZRad(&tmp, pEmitter->mParameter.mRotate.x, pEmitter->mParameter.mRotate.y,
                              pEmitter->mParameter.mRotate.z);
         math::MTX34Scale(&tmp, &tmp, &pEmitter->mParameter.mScale);
 
@@ -315,8 +298,7 @@ Emitter* Emitter::CreateEmitter(EmitterResource* pResource,
         pEmitter->mParameter.mTranslate.z = transSave.z + mtx._23;
         pEmitter->SetMtxDirty();
 
-        if (pSetting->speed != 0 || pSetting->scale != 0 ||
-            pSetting->alpha != 0 || pSetting->color != 0 ||
+        if (pSetting->speed != 0 || pSetting->scale != 0 || pSetting->alpha != 0 || pSetting->color != 0 ||
             (pSetting->flag & EmitterInheritSetting::FLAG_INHERIT_ROT)) {
 
             pEmitter->mpReferenceParticle = pParticle;
@@ -329,9 +311,8 @@ Emitter* Emitter::CreateEmitter(EmitterResource* pResource,
     return pEmitter;
 }
 
-void Emitter::CreateEmitterTmp(EmitterResource* pResource,
-                               EmitterInheritSetting* pSetting,
-                               Particle* pParticle, u16 calcRemain) {
+void Emitter::CreateEmitterTmp(EmitterResource* pResource, EmitterInheritSetting* pSetting, Particle* pParticle,
+                               u16 calcRemain) {
 
     Emitter tempEmitter;
 
@@ -344,8 +325,7 @@ void Emitter::CreateEmitterTmp(EmitterResource* pResource,
 
     Emitter* pEmitter = &tempEmitter;
 
-    if ((pSetting->flag & EmitterInheritSetting::FLAG_FOLLOW_EMIT) &&
-        pSetting->speed != 0) {
+    if ((pSetting->flag & EmitterInheritSetting::FLAG_FOLLOW_EMIT) && pSetting->speed != 0) {
 
         math::VEC3 dir;
         math::MTX34 dirMtx;
@@ -367,8 +347,7 @@ void Emitter::CreateEmitterTmp(EmitterResource* pResource,
             }
 
             GetDirMtxY(&dirMtx, dir);
-            math::MTX34RotXYZRad(&tmpMtx, pEmitter->mParameter.mRotate.x,
-                                 pEmitter->mParameter.mRotate.y,
+            math::MTX34RotXYZRad(&tmpMtx, pEmitter->mParameter.mRotate.x, pEmitter->mParameter.mRotate.y,
                                  pEmitter->mParameter.mRotate.z);
 
             math::MTX34Mult(&dirMtx, &dirMtx, &tmpMtx);
@@ -387,8 +366,7 @@ void Emitter::CreateEmitterTmp(EmitterResource* pResource,
     math::MTX34 tmp;
 
     math::MTX34Identity(&mtx);
-    math::MTX34RotXYZRad(&mtx, pEmitter->mParameter.mRotate.x,
-                         pEmitter->mParameter.mRotate.y,
+    math::MTX34RotXYZRad(&mtx, pEmitter->mParameter.mRotate.x, pEmitter->mParameter.mRotate.y,
                          pEmitter->mParameter.mRotate.z);
     math::MTX34Scale(&mtx, &mtx, &pEmitter->mParameter.mScale);
 
@@ -400,8 +378,7 @@ void Emitter::CreateEmitterTmp(EmitterResource* pResource,
     math::MTX34Mult(&mtx, &mtx, &tmp);
 
     math::MTX34Trans(&mtx, &mtx, &pParticle->mParameter.mPosition);
-    math::MTX34RotXYZRad(&tmp, pEmitter->mParameter.mRotate.x,
-                         pEmitter->mParameter.mRotate.y,
+    math::MTX34RotXYZRad(&tmp, pEmitter->mParameter.mRotate.x, pEmitter->mParameter.mRotate.y,
                          pEmitter->mParameter.mRotate.z);
     math::MTX34Scale(&tmp, &tmp, &pEmitter->mParameter.mScale);
 
@@ -426,8 +403,7 @@ void Emitter::CreateEmitterTmp(EmitterResource* pResource,
 
     s8 inheritT;
 
-    const s8 parentChildT =
-        mResource->GetEmitterDesc()->inheritChildEmitTranslate;
+    const s8 parentChildT = mResource->GetEmitterDesc()->inheritChildEmitTranslate;
 
     const s8 myPtclT = pResource->GetEmitterDesc()->inheritPtclTranslate;
 
@@ -442,12 +418,10 @@ void Emitter::CreateEmitterTmp(EmitterResource* pResource,
                    pResource->GetEmitterDesc()->inheritPtclTranslate / 100;
     }
 
-    ParticleManager* pManager = FindParticleManager(
-        pResource, inheritS, inheritR, inheritT, pSetting->weight);
+    ParticleManager* pManager = FindParticleManager(pResource, inheritS, inheritR, inheritT, pSetting->weight);
 
     if (pManager == NULL) {
-        pManager =
-            mManagerEF->mManagerES->GetMemoryManager()->AllocParticleManager();
+        pManager = mManagerEF->mManagerES->GetMemoryManager()->AllocParticleManager();
 
         if (pManager == NULL) {
             return;
@@ -472,8 +446,7 @@ void Emitter::CreateEmitterTmp(EmitterResource* pResource,
         mManagerEF->ParticleManagerAdd(pManager);
     }
 
-    if (pSetting->speed != 0 || pSetting->scale != 0 || pSetting->alpha != 0 ||
-        pSetting->color != 0 ||
+    if (pSetting->speed != 0 || pSetting->scale != 0 || pSetting->alpha != 0 || pSetting->color != 0 ||
         (pSetting->flag & EmitterParameter::INHERIT_FLAG_ROT)) {
 
         tempEmitter.mpReferenceParticle = pParticle;
@@ -502,19 +475,16 @@ void Emitter::CreateEmitterTmp(EmitterResource* pResource,
         tempEmitter.mpReferenceParticle = NULL;
     }
 
-    if (mLifeStatus != NW4R_EF_LS_ACTIVE &&
-        pManager->GetLifeStatus() == NW4R_EF_LS_ACTIVE) {
+    if (mLifeStatus != NW4R_EF_LS_ACTIVE && pManager->GetLifeStatus() == NW4R_EF_LS_ACTIVE) {
 
         RetireParticleManager(pManager);
     }
 }
 
-ParticleManager* Emitter::FindParticleManager(EmitterResource* pResource,
-                                              bool inheritS, bool inheritR,
-                                              s8 inheritT, u8 weight) {
+ParticleManager* Emitter::FindParticleManager(EmitterResource* pResource, bool inheritS, bool inheritR, s8 inheritT,
+                                              u8 weight) {
 
-    ParticleManager* pIt = static_cast<ParticleManager*>(
-        ut::List_GetFirst(&mActivityList.mActiveList));
+    ParticleManager* pIt = static_cast<ParticleManager*>(ut::List_GetFirst(&mActivityList.mActiveList));
 
     // clang-format off
     for (; pIt != NULL; pIt = static_cast<ParticleManager*>(
@@ -546,8 +516,8 @@ ParticleManager* Emitter::FindParticleManager(EmitterResource* pResource,
     return NULL;
 }
 
-static f32 GetLODratio(math::VEC3& rEmitPos, math::VEC3& rCamPos, f32 cameraFar,
-                       f32 cameraNear, f32 lodFar, f32 lodNear) {
+static f32 GetLODratio(math::VEC3& rEmitPos, math::VEC3& rCamPos, f32 cameraFar, f32 cameraNear, f32 lodFar,
+                       f32 lodNear) {
 
     f32 Gl, Vl, Nl, Fl;
     f32 LODratio;
@@ -584,9 +554,8 @@ void Emitter::Emission(ParticleManager* pManager, const math::MTX34* pSpace) {
     mEmitIntervalWait = mParameter.mEmitInterval;
 
     if (mParameter.mEmitIntervalRandom != 0.0f) {
-        mEmitIntervalWait += static_cast<u16>(math::FCeil(
-            (mParameter.mEmitInterval * mParameter.mEmitIntervalRandom - 1.0f) *
-            mRandom.RandFloat()));
+        mEmitIntervalWait += static_cast<u16>(
+            math::FCeil((mParameter.mEmitInterval * mParameter.mEmitIntervalRandom - 1.0f) * mRandom.RandFloat()));
     }
 
     if (mParameter.mEmitFlags & EmitterDesc::EMIT_FLAG_17) {
@@ -597,8 +566,7 @@ void Emitter::Emission(ParticleManager* pManager, const math::MTX34* pSpace) {
             count = mParameter.mEmitRatio;
         } else {
             count = mParameter.mEmitRatio +
-                    mParameter.mEmitRatio * mParameter.mEmitRandom *
-                        (2.0f * mRandom.RandFloat() - 1.0f);
+                    mParameter.mEmitRatio * mParameter.mEmitRandom * (2.0f * mRandom.RandFloat() - 1.0f);
         }
 
         if (mParameter.mEmitFlags & EmitterDesc::EMIT_FLAG_8) {
@@ -614,14 +582,12 @@ void Emitter::Emission(ParticleManager* pManager, const math::MTX34* pSpace) {
                 mParameter.mLODNear);
             // clang-format on
 
-            count *= mParameter.mLODMinEmit +
-                     (1.0f - mParameter.mLODMinEmit) * ratio;
+            count *= mParameter.mLODMinEmit + (1.0f - mParameter.mLODMinEmit) * ratio;
         }
 
         mParameter.mEmitCount += count;
 
-        if (mIsFirstEmission && mParameter.mEmitRatio != 0.0f &&
-            mParameter.mEmitCount < 1.0f) {
+        if (mIsFirstEmission && mParameter.mEmitRatio != 0.0f && mParameter.mEmitCount < 1.0f) {
 
             mParameter.mEmitCount = 1.0f;
         }
@@ -646,17 +612,13 @@ void Emitter::Emission(ParticleManager* pManager, const math::MTX34* pSpace) {
                 f32 lifeRnd = pDesc->ptclLifeRandom / 100.0f;
                 math::MTX34 newSpace = *pSpace;
 
-                mManagerEF->mCallBack.mPrevEmission(this, pManager, &count,
-                                                    &flags, &params, &life,
-                                                    &lifeRnd, &newSpace);
+                mManagerEF->mCallBack.mPrevEmission(this, pManager, &count, &flags, &params, &life, &lifeRnd,
+                                                    &newSpace);
 
-                mForm->Emission(this, pManager, count, flags, params, life,
-                                lifeRnd, &newSpace);
+                mForm->Emission(this, pManager, count, flags, params, life, lifeRnd, &newSpace);
             } else {
-                mForm->Emission(
-                    this, pManager, static_cast<int>(mParameter.mEmitCount),
-                    mParameter.mEmitFlags, mParameter.mParams, pDesc->ptclLife,
-                    pDesc->ptclLifeRandom / 100.0f, pSpace);
+                mForm->Emission(this, pManager, static_cast<int>(mParameter.mEmitCount), mParameter.mEmitFlags,
+                                mParameter.mParams, pDesc->ptclLife, pDesc->ptclLifeRandom / 100.0f, pSpace);
             }
         }
 
@@ -696,34 +658,67 @@ void Emitter::CalcEmitter() {
     }
 
     u32 animTime = mTick;
-    u32 animSpan = (mParameter.mComFlags & EmitterDesc::CMN_FLAG_MAX_LIFE)
-                       ? 0xFFFFFFFF
-                       : mParameter.mEmitSpan;
+    u32 animSpan = (mParameter.mComFlags & EmitterDesc::CMN_FLAG_MAX_LIFE) ? 0xFFFFFFFF : mParameter.mEmitSpan;
 
     bool mtxDirty = false;
 
-    for (size_t i=mTick==0 ? 0 : mResource->emitterInitTracks;i<mResource->emitterTracks.size();++i) {
-        const auto& track=mResource->emitterTracks[i];
-        if (track.size()<32) throw std::runtime_error("Truncated emitter animation");
-        if (track[4]&8) continue;
-        if (track[0]!=0xAC && track[0]!=0xAB) continue;
-        float* target=nullptr;
-        size_t count=0;
+    for (size_t i = mTick == 0 ? 0 : mResource->emitterInitTracks; i < mResource->emitterTracks.size(); ++i) {
+        const auto& track = mResource->emitterTracks[i];
+        if (track.size() < 32)
+            throw std::runtime_error("Truncated emitter animation");
+        if (track[4] & 8)
+            continue;
+        if (track[0] != 0xAC && track[0] != 0xAB)
+            continue;
+        float* target = nullptr;
+        size_t count = 0;
         switch (track[1]) {
-        case 8: target=&mParameter.mEmitRatio; count=1; break;
-        case 44: target=mParameter.mParams; count=6; break;
-        case 72: target=&mParameter.mVelPowerRadiationDir; count=1; break;
-        case 76: target=&mParameter.mVelPowerYAxis; count=1; break;
-        case 80: target=&mParameter.mVelPowerRandomDir; count=1; break;
-        case 84: target=&mParameter.mVelPowerNormalDir; count=2; break;
-        case 92: target=&mParameter.mVelPowerSpecDir; count=5; break;
-        case 112: target=&mParameter.mTranslate.x; count=3; break;
-        case 124: target=&mParameter.mScale.x; count=3; break;
-        case 136: target=&mParameter.mRotate.x; count=3; break;
-        default: throw std::runtime_error("Unknown v11 emitter animation target");
+        case 8:
+            target = &mParameter.mEmitRatio;
+            count = 1;
+            break;
+        case 44:
+            target = mParameter.mParams;
+            count = 6;
+            break;
+        case 72:
+            target = &mParameter.mVelPowerRadiationDir;
+            count = 1;
+            break;
+        case 76:
+            target = &mParameter.mVelPowerYAxis;
+            count = 1;
+            break;
+        case 80:
+            target = &mParameter.mVelPowerRandomDir;
+            count = 1;
+            break;
+        case 84:
+            target = &mParameter.mVelPowerNormalDir;
+            count = 2;
+            break;
+        case 92:
+            target = &mParameter.mVelPowerSpecDir;
+            count = 5;
+            break;
+        case 112:
+            target = &mParameter.mTranslate.x;
+            count = 3;
+            break;
+        case 124:
+            target = &mParameter.mScale.x;
+            count = 3;
+            break;
+        case 136:
+            target = &mParameter.mRotate.x;
+            count = 3;
+            break;
+        default:
+            throw std::runtime_error("Unknown v11 emitter animation target");
         }
-        breff::evaluateF32(track,{target,count},animTime,mRandSeed,animSpan);
-        if (track[1]>=112) mtxDirty=true;
+        breff::evaluateF32(track, {target, count}, animTime, mRandSeed, animSpan);
+        if (track[1] >= 112)
+            mtxDirty = true;
     }
 
     if (mtxDirty) {
@@ -738,12 +733,10 @@ void Emitter::CalcParticle() {
         return;
     }
 
-    u16 size = UtlistToArray(&mActivityList.mActiveList, pArray,
-                             UtlistSize(&mActivityList.mActiveList));
+    u16 size = UtlistToArray(&mActivityList.mActiveList, pArray, UtlistSize(&mActivityList.mActiveList));
 
     for (u16 i = 0; i < size; i++) {
-        ParticleManager* pManager =
-            reinterpret_cast<ParticleManager*>(pArray[i]);
+        ParticleManager* pManager = reinterpret_cast<ParticleManager*>(pArray[i]);
 
         pManager->Calc();
     }
@@ -765,8 +758,7 @@ void Emitter::CalcEmission() {
     }
 
     if (mLifeStatus == NW4R_EF_LS_ACTIVE) {
-        ParticleManager* pManager = reinterpret_cast<ParticleManager*>(
-            ut::List_GetFirst(&mActivityList.mActiveList));
+        ParticleManager* pManager = reinterpret_cast<ParticleManager*>(ut::List_GetFirst(&mActivityList.mActiveList));
 
         math::MTX34 space;
         math::MTX34 pmMtx;
@@ -797,8 +789,7 @@ void Emitter::CalcBillboard() {
         return;
     }
 
-    if (!(mParameter.mEmitFlags & EmitterDesc::EMIT_FLAG_16) &&
-        !(mParameter.mEmitFlags & EmitterDesc::EMIT_FLAG_15)) {
+    if (!(mParameter.mEmitFlags & EmitterDesc::EMIT_FLAG_16) && !(mParameter.mEmitFlags & EmitterDesc::EMIT_FLAG_15)) {
         return;
     }
 
@@ -846,8 +837,7 @@ void Emitter::CalcBillboard() {
     SetMtxDirty();
 }
 
-math::MTX34* Emitter::RestructMatrix(math::MTX34* pResult, math::MTX34* pOrig,
-                                     bool inheritS, bool inheritR,
+math::MTX34* Emitter::RestructMatrix(math::MTX34* pResult, math::MTX34* pOrig, bool inheritS, bool inheritR,
                                      s8 inheritT) {
 
     if (inheritS && inheritR && inheritT == 100) {
@@ -897,16 +887,12 @@ math::MTX34* Emitter::CalcGlobalMtx(math::MTX34* pResult) {
             math::MTX34 orig;
             mParent->CalcGlobalMtx(&orig);
 
-            RestructMatrix(
-                &mMtx, &orig,
-                mParameter.mInherit & EmitterParameter::INHERIT_FLAG_SCALE,
-                mParameter.mInherit & EmitterParameter::INHERIT_FLAG_ROT,
-                mParameter.mInheritTranslate);
+            RestructMatrix(&mMtx, &orig, mParameter.mInherit & EmitterParameter::INHERIT_FLAG_SCALE,
+                           mParameter.mInherit & EmitterParameter::INHERIT_FLAG_ROT, mParameter.mInheritTranslate);
         }
 
         math::MTX34Trans(&mMtx, &mMtx, &mParameter.mTranslate);
-        math::MTX34RotXYZRad(&tmp, mParameter.mRotate.x, mParameter.mRotate.y,
-                             mParameter.mRotate.z);
+        math::MTX34RotXYZRad(&tmp, mParameter.mRotate.x, mParameter.mRotate.y, mParameter.mRotate.z);
 
         math::MTX34Mult(&mMtx, &mMtx, &tmp);
         math::MTX34Scale(&mMtx, &mMtx, &mParameter.mScale);
@@ -926,8 +912,8 @@ void Emitter::SetMtxDirty() {
     mMtxDirty = true;
 
     ParticleManager* pManager = NULL;
-    while ((pManager = reinterpret_cast<ParticleManager*>(ut::List_GetNext(
-                &mActivityList.mActiveList, pManager))) != NULL) {
+    while ((pManager = reinterpret_cast<ParticleManager*>(ut::List_GetNext(&mActivityList.mActiveList, pManager))) !=
+           NULL) {
 
         pManager->SetMtxDirty();
     }
@@ -937,15 +923,14 @@ void Emitter::SetMtxDirty() {
     }
 
     Emitter* pEmitter = NULL;
-    while ((pEmitter = reinterpret_cast<Emitter*>(ut::List_GetNext(
-                &mManagerEF->mActivityList.mActiveList, pEmitter))) != NULL) {
+    while ((pEmitter = reinterpret_cast<Emitter*>(
+                ut::List_GetNext(&mManagerEF->mActivityList.mActiveList, pEmitter))) != NULL) {
 
         if (pEmitter->mMtxDirty) {
             continue;
         }
 
-        for (Emitter* pSearch = pEmitter->mParent; pSearch;
-             pSearch = pSearch->mParent) {
+        for (Emitter* pSearch = pEmitter->mParent; pSearch; pSearch = pSearch->mParent) {
 
             if (pSearch != this) {
                 continue;
@@ -955,8 +940,7 @@ void Emitter::SetMtxDirty() {
 
             ParticleManager* pManager = NULL;
             while ((pManager = reinterpret_cast<ParticleManager*>(
-                        ut::List_GetNext(&pEmitter->mActivityList.mActiveList,
-                                         pManager))) != NULL) {
+                        ut::List_GetNext(&pEmitter->mActivityList.mActiveList, pManager))) != NULL) {
 
                 pManager->SetMtxDirty();
             }
@@ -969,8 +953,7 @@ u16 Emitter::GetNumParticleManager() const {
 }
 
 ParticleManager* Emitter::GetParticleManager(u16 idx) {
-    return reinterpret_cast<ParticleManager*>(
-        ut::List_GetNth(&mActivityList.mActiveList, idx));
+    return reinterpret_cast<ParticleManager*>(ut::List_GetNth(&mActivityList.mActiveList, idx));
 }
 
 /******************************************************************************
@@ -985,8 +968,7 @@ struct ForEachContext {
     bool ignoreLifeStatus; // at 0xC
 };
 
-u32 Emitter::ForeachEmitter(ForEachFunc pFunc, ForEachParam param,
-                            bool ignoreLifeStatus) {
+u32 Emitter::ForeachEmitter(ForEachFunc pFunc, ForEachParam param, bool ignoreLifeStatus) {
 
     return mManagerEF->ForeachEmitterFrom(pFunc, param, ignoreLifeStatus, this);
 }
@@ -995,15 +977,13 @@ static void foreachParticleManagerSub(void* pObject, ForEachParam param) {
     Emitter* pEmitter = reinterpret_cast<Emitter*>(pObject);
     ForEachContext* pCtx = reinterpret_cast<ForEachContext*>(param);
 
-    pCtx->calls += pEmitter->ForeachParticleManager(
-        pCtx->pFunc, pCtx->param, pCtx->ignoreLifeStatus, false);
+    pCtx->calls += pEmitter->ForeachParticleManager(pCtx->pFunc, pCtx->param, pCtx->ignoreLifeStatus, false);
 }
 
-u32 Emitter::ForeachParticleManager(ForEachFunc pFunc, ForEachParam param,
-                                    bool ignoreLifeStatus, bool propogate) {
+u32 Emitter::ForeachParticleManager(ForEachFunc pFunc, ForEachParam param, bool ignoreLifeStatus, bool propogate) {
     u32 calls = 0;
 
-    NW4R_UT_LIST_FOREACH_SAFE (ParticleManager, it, mActivityList.mActiveList, {
+    NW4R_UT_LIST_FOREACH_SAFE(ParticleManager, it, mActivityList.mActiveList, {
         if (!ignoreLifeStatus && it->GetLifeStatus() != NW4R_EF_LS_ACTIVE) {
             continue;
         }
@@ -1020,8 +1000,7 @@ u32 Emitter::ForeachParticleManager(ForEachFunc pFunc, ForEachParam param,
         data.param = param;
         data.ignoreLifeStatus = ignoreLifeStatus;
 
-        ForeachEmitter(foreachParticleManagerSub,
-                       reinterpret_cast<ForEachParam>(&data), true);
+        ForeachEmitter(foreachParticleManagerSub, reinterpret_cast<ForEachParam>(&data), true);
 
         calls += data.calls;
     }

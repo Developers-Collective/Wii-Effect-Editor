@@ -8,7 +8,7 @@ namespace nw4r {
 namespace ef {
 
 class DrawFreeStrategy : public DrawStrategyImpl {
-public:
+  public:
     DrawFreeStrategy();
 
     virtual void Draw(const DrawInfo& rInfo,

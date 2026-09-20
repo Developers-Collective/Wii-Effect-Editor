@@ -9,7 +9,7 @@ namespace nw4r {
 namespace ef {
 
 struct CreationQueue {
-private:
+  private:
     struct CreationQueueData {
         enum Type { TYPE_PARTICLE, TYPE_EMITTER };
 
@@ -23,23 +23,20 @@ private:
         bool mHasPosition;
     };
 
-private:
-    static const int QUEUE_SIZE =
-        MAX(NW4R_EF_MAX_PARTICLE, NW4R_EF_MAX_EMITTER);
+  private:
+    static const int QUEUE_SIZE = MAX(NW4R_EF_MAX_PARTICLE, NW4R_EF_MAX_EMITTER);
 
-private:
+  private:
     int mNumItem;                             // at 0x0
     CreationQueueData mQueueData[QUEUE_SIZE]; // at 0x4
 
-public:
+  public:
     CreationQueue();
 
-    void AddParticleCreation(const EmitterInheritSetting* pSetting,
-                             Particle* pParticle, EmitterResource* pResource,
+    void AddParticleCreation(const EmitterInheritSetting* pSetting, Particle* pParticle, EmitterResource* pResource,
                              u16 calcRemain, const math::VEC3* position = nullptr);
 
-    void AddEmitterCreation(const EmitterInheritSetting* pSetting,
-                            Particle* pParticle, EmitterResource* pResource,
+    void AddEmitterCreation(const EmitterInheritSetting* pSetting, Particle* pParticle, EmitterResource* pResource,
                             u16 calcRemain, const math::VEC3* position = nullptr);
 
     void Execute();

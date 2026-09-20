@@ -12,12 +12,12 @@ inline u16 UtlistSize(const ut::List* pList) {
 }
 
 class ActivityList {
-public:
+  public:
     ut::List mActiveList;  // at 0x0
     ut::List mClosingList; // at 0xC
     u16 mNumActive;        // at 0x18
 
-public:
+  public:
     ActivityList() {
         SetOffset(0);
     }

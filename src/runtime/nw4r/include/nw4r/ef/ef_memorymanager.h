@@ -12,9 +12,11 @@ class Particle;
 class ParticleManager;
 
 class MemoryManagerBase {
-public:
-    MemoryManagerBase() {}
-    virtual ~MemoryManagerBase() {} // at 0x8
+  public:
+    MemoryManagerBase() {
+    }
+    virtual ~MemoryManagerBase() {
+    } // at 0x8
 
     virtual void GarbageCollection() = 0; // at 0xC
 

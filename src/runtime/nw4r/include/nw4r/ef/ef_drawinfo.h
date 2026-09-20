@@ -10,7 +10,7 @@ namespace nw4r {
 namespace ef {
 
 class DrawInfo {
-private:
+  private:
     math::MTX34 mViewMtx; // at 0x0
     math::MTX34 mProjMtx; // at 0x30
     bool mLightEnable;    // at 0x60
@@ -23,7 +23,7 @@ private:
     f32 mFogFarz;         // at 0x7C
     GXColor mFogColor;    // at 0x80
 
-public:
+  public:
     DrawInfo() {
         math::MTX34Identity(&mViewMtx);
         math::MTX34Identity(&mProjMtx);
@@ -65,8 +65,7 @@ public:
         return mIsSpotLight;
     }
 
-    void GetFog(GXFogType* pType, f32* pStartZ, f32* pEndZ, f32* pNearZ,
-                f32* pFarZ, GXColor* pColor) const {
+    void GetFog(GXFogType* pType, f32* pStartZ, f32* pEndZ, f32* pNearZ, f32* pFarZ, GXColor* pColor) const {
 
         *pType = mFogType;
         *pStartZ = mFogStartz;

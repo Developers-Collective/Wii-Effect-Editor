@@ -11,7 +11,7 @@ ut::List* DrawOrderBase::GetPMList(Effect* pEffect) {
 void DrawOrder::Draw(Effect* pEffect, const DrawInfo& rInfo) {
     ut::List* pList = GetPMList(pEffect);
 
-    NW4R_UT_LIST_FOREACH (ParticleManager, it, *pList, {
+    NW4R_UT_LIST_FOREACH(ParticleManager, it, *pList, {
         it->BeginDraw();
         it->Draw(rInfo);
         it->EndDraw();
@@ -22,8 +22,7 @@ void DrawOrder::Add(Effect* pEffect, ParticleManager* pManager) {
     ut::List* pList = GetPMList(pEffect);
     ParticleManager* pIt = NULL;
 
-    while (
-        (pIt = static_cast<ParticleManager*>(ut::List_GetPrev(pList, pIt)))) {
+    while ((pIt = static_cast<ParticleManager*>(ut::List_GetPrev(pList, pIt)))) {
 
         if (pIt->mWeight <= pManager->mWeight) {
             break;

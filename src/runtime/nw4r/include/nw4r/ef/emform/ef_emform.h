@@ -19,7 +19,7 @@ enum EmitFormType {
 };
 
 class EmitFormBuilder {
-public:
+  public:
     virtual EmitterForm* Create(EmitFormType type); // at 0x8
 };
 

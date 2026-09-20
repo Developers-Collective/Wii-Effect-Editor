@@ -10,9 +10,11 @@ class DrawInfo;
 class ParticleManager;
 
 class DrawStrategy {
-public:
-    DrawStrategy() {}
-    virtual ~DrawStrategy() {} // at 0x8
+  public:
+    DrawStrategy() {
+    }
+    virtual ~DrawStrategy() {
+    } // at 0x8
 
     virtual void Draw(const DrawInfo& rInfo,
                       ParticleManager* pManager) = 0; // at 0xC

@@ -11,13 +11,13 @@ namespace ef {
 
 static void DrawPoint(const math::VEC3& rPos, bool texCoord);
 
-DrawPointStrategy::DrawPointStrategy() {}
+DrawPointStrategy::DrawPointStrategy() {
+}
 
 void DrawPointStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManager) {
     InitGraphics(rInfo, pManager);
 
-    const EmitterDrawSetting& rSetting =
-        *pManager->mResource->GetEmitterDrawSetting();
+    const EmitterDrawSetting& rSetting = *pManager->mResource->GetEmitterDrawSetting();
 
     math::MTX34 glbMtx;
     math::MTX34 posMtx;
@@ -26,11 +26,11 @@ void DrawPointStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManager) {
     math::MTX34Mult(&posMtx, rInfo.GetViewMtx(), &glbMtx);
     GXLoadPosMtxImm(posMtx, GX_PNMTX0);
 
-    GetFirstDrawParticleFunc pGetFirstFunc = GetGetFirstDrawParticleFunc(
-        rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
+    GetFirstDrawParticleFunc pGetFirstFunc =
+        GetGetFirstDrawParticleFunc(rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
 
-    GetNextDrawParticleFunc pGetNextFunc = GetGetNextDrawParticleFunc(
-        rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
+    GetNextDrawParticleFunc pGetNextFunc =
+        GetGetNextDrawParticleFunc(rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
 
     u8 prevPointSize = 0;
     bool first = true;
@@ -74,11 +74,9 @@ static void DrawPoint(const math::VEC3& rPos, bool texCoord) {
     GXEnd();
 }
 
-void DrawPointStrategy::InitGraphics(const DrawInfo& rInfo,
-                                     ParticleManager* pManager) {
+void DrawPointStrategy::InitGraphics(const DrawInfo& rInfo, ParticleManager* pManager) {
 
-    const EmitterDrawSetting& rSetting =
-        *pManager->mResource->GetEmitterDrawSetting();
+    const EmitterDrawSetting& rSetting = *pManager->mResource->GetEmitterDrawSetting();
 
     InitTexture(rSetting);
     InitTev(rSetting, rInfo);

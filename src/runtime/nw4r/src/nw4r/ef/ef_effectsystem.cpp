@@ -43,9 +43,7 @@ EffectSystem* EffectSystem::GetInstance() {
 bool EffectSystem::Initialize(u32 maxGroupID) {
     mMaxGroupID = maxGroupID;
 
-    mActivityList =
-        new (mMemoryManager->AllocHeap(mMaxGroupID * sizeof(ActivityList) + 32))
-            ActivityList[mMaxGroupID];
+    mActivityList = new (mMemoryManager->AllocHeap(mMaxGroupID * sizeof(ActivityList) + 32)) ActivityList[mMaxGroupID];
 
     for (int i = 0; i < mMaxGroupID; i++) {
         mActivityList[i].SetOffset(offsetof(Effect, mActivityLink));
@@ -68,11 +66,9 @@ bool EffectSystem::Closing(Effect* pEffect) {
     return true;
 }
 
-Effect* EffectSystem::CreateEffect(const char* pName, u32 groupID,
-                                   u16 calcRemain) {
+Effect* EffectSystem::CreateEffect(const char* pName, u32 groupID, u16 calcRemain) {
 
-    EmitterResource* pResource =
-        Resource::GetInstance()->_FindEmitter(pName, NULL);
+    EmitterResource* pResource = Resource::GetInstance()->_FindEmitter(pName, NULL);
 
     if (pResource == NULL) {
         return NULL;
@@ -113,8 +109,8 @@ u32 EffectSystem::RetireEffectAll(u32 groupID) {
     u32 num = 0;
     void* pArray[NW4R_EF_MAX_EFFECT];
 
-    u16 size = UtlistToArray(&mActivityList[groupID].mActiveList, pArray,
-                             UtlistSize(&mActivityList[groupID].mActiveList));
+    u16 size =
+        UtlistToArray(&mActivityList[groupID].mActiveList, pArray, UtlistSize(&mActivityList[groupID].mActiveList));
 
     for (u16 i = 0; i < size; i++) {
         Effect* pEffect = static_cast<Effect*>(pArray[i]);
@@ -131,8 +127,8 @@ u32 EffectSystem::RetireEmitterAll(u32 groupID) {
     u32 num = 0;
     void* pArray[NW4R_EF_MAX_EFFECT];
 
-    u16 size = UtlistToArray(&mActivityList[groupID].mActiveList, pArray,
-                             UtlistSize(&mActivityList[groupID].mActiveList));
+    u16 size =
+        UtlistToArray(&mActivityList[groupID].mActiveList, pArray, UtlistSize(&mActivityList[groupID].mActiveList));
 
     for (u16 i = 0; i < size; i++) {
         Effect* pEffect = static_cast<Effect*>(pArray[i]);
@@ -146,8 +142,8 @@ u32 EffectSystem::RetireParticleAll(u32 groupID) {
     u32 num = 0;
     void* pArray[NW4R_EF_MAX_EFFECT];
 
-    u16 size = UtlistToArray(&mActivityList[groupID].mActiveList, pArray,
-                             UtlistSize(&mActivityList[groupID].mActiveList));
+    u16 size =
+        UtlistToArray(&mActivityList[groupID].mActiveList, pArray, UtlistSize(&mActivityList[groupID].mActiveList));
 
     for (u16 i = 0; i < size; i++) {
         Effect* pEffect = static_cast<Effect*>(pArray[i]);
@@ -160,8 +156,8 @@ u32 EffectSystem::RetireParticleAll(u32 groupID) {
 void EffectSystem::Calc(u32 groupID, bool onlyBillboard) {
     void* pArray[NW4R_EF_MAX_EFFECT];
 
-    u16 size = UtlistToArray(&mActivityList[groupID].mActiveList, pArray,
-                             UtlistSize(&mActivityList[groupID].mActiveList));
+    u16 size =
+        UtlistToArray(&mActivityList[groupID].mActiveList, pArray, UtlistSize(&mActivityList[groupID].mActiveList));
 
     for (u16 i = 0; i < size; i++) {
         Effect* pEffect = static_cast<Effect*>(pArray[i]);
@@ -172,8 +168,7 @@ void EffectSystem::Calc(u32 groupID, bool onlyBillboard) {
 }
 
 void EffectSystem::Draw(const DrawInfo& rInfo, u32 groupID) {
-    NW4R_UT_LIST_FOREACH (Effect, it, mActivityList[groupID].mActiveList,
-                          { it->Draw(rInfo); });
+    NW4R_UT_LIST_FOREACH(Effect, it, mActivityList[groupID].mActiveList, { it->Draw(rInfo); });
 }
 
 } // namespace ef

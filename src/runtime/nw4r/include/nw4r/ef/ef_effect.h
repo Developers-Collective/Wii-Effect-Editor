@@ -25,7 +25,7 @@ class Effect : public ReferencedObject {
     friend class EffectSystem;
     friend class DrawOrderBase;
 
-private:
+  private:
     enum Flag {
         FLAG_DISABLE_CALC = (1 << 0),
         FLAG_DISABLE_DRAW = (1 << 1),
@@ -33,34 +33,30 @@ private:
     };
 
     struct CallBack {
-        typedef void (*PrevEmissionFunc)(Emitter* pEmitter,
-                                         ParticleManager* pManager, int* pCount,
-                                         u32* pFlags,
-                                         f32 (*pParams)[NUM_PARAMS], u16* pLife,
-                                         f32* pLifeRnd, math::MTX34* pSpace);
+        typedef void (*PrevEmissionFunc)(Emitter* pEmitter, ParticleManager* pManager, int* pCount, u32* pFlags,
+                                         f32 (*pParams)[NUM_PARAMS], u16* pLife, f32* pLifeRnd, math::MTX34* pSpace);
 
-        typedef void (*PtclCalcFunc)(ParticleManager* pManager, ut::List* pList,
-                                     Particle* pParticle);
+        typedef void (*PtclCalcFunc)(ParticleManager* pManager, ut::List* pList, Particle* pParticle);
 
         PrevEmissionFunc mPrevEmission; // at 0x0
         PtclCalcFunc mPrevPtclCalc;     // at 0x4
         PtclCalcFunc mPostPtclCalc;     // at 0x8
     };
 
-public:
+  public:
     EffectSystem* mManagerES;   // at 0x20
     ActivityList mActivityList; // at 0x24
     u32 mGroupID;               // at 0x40
     CallBack mCallBack;         // at 0x44
 
-protected:
+  protected:
     u32 mFlags;                    // at 0x50
     math::MTX34 mRootMtx;          // at 0x54
     math::VEC3 mVelocity;          // at 0x84
     ut::List mParticleManager;     // at 0x90
     DrawOrderBase* mDrawOrderFunc; // at 0x9C
 
-public:
+  public:
     Effect();
     ~Effect();
 
@@ -69,8 +65,7 @@ public:
 
     virtual bool Initialize(EffectSystem* pSystem, EmitterResource* pResource,
                             u16 calcRemain); // at 0x10
-    virtual Emitter* CreateEmitter(ResEmitter res, u8 drawWeight,
-                                   u16 calcRemain) {
+    virtual Emitter* CreateEmitter(ResEmitter res, u8 drawWeight, u16 calcRemain) {
         return CreateEmitter(res.ptr(), drawWeight, calcRemain);
     } // at 0x14
 
@@ -79,8 +74,7 @@ public:
 
     bool Closing(Emitter* pEmitter);
 
-    Emitter* CreateEmitter(EmitterResource* pResource, u8 drawWeight,
-                           u16 calcRemain);
+    Emitter* CreateEmitter(EmitterResource* pResource, u8 drawWeight, u16 calcRemain);
     u32 RetireEmitter(Emitter* pEmitter);
 
     u32 RetireEmitterAll();
@@ -89,10 +83,8 @@ public:
     u16 GetNumEmitter() const;
     Emitter* GetEmitter(u16 idx);
 
-    u32 ForeachParticleManager(ForEachFunc pFunc, ForEachParam param,
-                               bool ignoreLifeStatus);
-    u32 ForeachEmitterFrom(ForEachFunc pFunc, ForEachParam param,
-                           bool ignoreLifeStatus, Emitter* pEmitter);
+    u32 ForeachParticleManager(ForEachFunc pFunc, ForEachParam param, bool ignoreLifeStatus);
+    u32 ForeachEmitterFrom(ForEachFunc pFunc, ForEachParam param, bool ignoreLifeStatus, Emitter* pEmitter);
 
     void ParticleManagerAdd(ParticleManager* pManager) {
         mDrawOrderFunc->Add(this, pManager);
@@ -102,29 +94,24 @@ public:
     }
 
     void Modifier_SetSimpleLightType(u8 type, bool ignoreLifeStatus = false) {
-        ForeachParticleManager(
-            ParticleManager::ModifierTravFunc_SetSimpleLightType,
-            static_cast<u32>(type), ignoreLifeStatus);
+        ForeachParticleManager(ParticleManager::ModifierTravFunc_SetSimpleLightType, static_cast<u32>(type),
+                               ignoreLifeStatus);
     }
 
-    void Modifier_SetSimpleLightAmbient(const GXColor& rColor,
-                                        bool ignoreLifeStatus = false) {
-        ForeachParticleManager(
-            ParticleManager::ModifierTravFunc_SetSimpleLightAmbient,
-            reinterpret_cast<uintptr_t>(&rColor), ignoreLifeStatus);
+    void Modifier_SetSimpleLightAmbient(const GXColor& rColor, bool ignoreLifeStatus = false) {
+        ForeachParticleManager(ParticleManager::ModifierTravFunc_SetSimpleLightAmbient,
+                               reinterpret_cast<uintptr_t>(&rColor), ignoreLifeStatus);
     }
 
     // @bug Surely meant to be a const reference...
     void Modifier_SetScale(math::VEC2& rScale, bool ignoreLifeStatus = false) {
-        ForeachParticleManager(ParticleManager::ModifierTravFunc_SetScale,
-                               reinterpret_cast<uintptr_t>(&rScale),
+        ForeachParticleManager(ParticleManager::ModifierTravFunc_SetScale, reinterpret_cast<uintptr_t>(&rScale),
                                ignoreLifeStatus);
     }
 
-    void Modifier_SetRotate(const math::VEC3& rRot,
-                            bool ignoreLifeStatus = false) {
-        ForeachParticleManager(ParticleManager::ModifierTravFunc_SetRotate,
-                               reinterpret_cast<uintptr_t>(&rRot), ignoreLifeStatus);
+    void Modifier_SetRotate(const math::VEC3& rRot, bool ignoreLifeStatus = false) {
+        ForeachParticleManager(ParticleManager::ModifierTravFunc_SetRotate, reinterpret_cast<uintptr_t>(&rRot),
+                               ignoreLifeStatus);
     }
 
     bool GetFlagDisableCalc() const {

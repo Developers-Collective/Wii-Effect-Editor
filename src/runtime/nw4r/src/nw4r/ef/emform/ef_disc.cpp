@@ -5,9 +5,8 @@
 namespace nw4r {
 namespace ef {
 
-void EmitterFormDisc::Emission(Emitter* pEmitter, ParticleManager* pManager,
-                               int count, u32 flags, f32* pParams, u16 life,
-                               f32 lifeRnd, const math::MTX34* pSpace) {
+void EmitterFormDisc::Emission(Emitter* pEmitter, ParticleManager* pManager, int count, u32 flags, f32* pParams,
+                               u16 life, f32 lifeRnd, const math::MTX34* pSpace) {
 
     if (count < 1) {
         return;
@@ -15,16 +14,12 @@ void EmitterFormDisc::Emission(Emitter* pEmitter, ParticleManager* pManager,
 
     f32 sizeX, sizeZ;
 
-    sizeX = std::fabs(pParams[0]) > NW4R_MATH_FLT_EPSILON
-                ? pParams[0]
-                : NW4R_MATH_FLT_EPSILON;
+    sizeX = std::fabs(pParams[0]) > NW4R_MATH_FLT_EPSILON ? pParams[0] : NW4R_MATH_FLT_EPSILON;
 
     if (flags & EmitterDesc::EMIT_FLAG_XYZ_SAME_SIZE) {
         sizeZ = sizeX;
     } else {
-        sizeZ = std::fabs(pParams[4]) > NW4R_MATH_FLT_EPSILON
-                    ? pParams[4]
-                    : NW4R_MATH_FLT_EPSILON;
+        sizeZ = std::fabs(pParams[4]) > NW4R_MATH_FLT_EPSILON ? pParams[4] : NW4R_MATH_FLT_EPSILON;
     }
 
     f32 angle = 0.0f;
@@ -41,12 +36,10 @@ void EmitterFormDisc::Emission(Emitter* pEmitter, ParticleManager* pManager,
         f32 f = std::fmod(pParams[3] - pParams[2], static_cast<f32>(NW4R_MATH_PI * 2));
 
         if (f < NW4R_EF_EMIT_ANGLE_MIN || f > NW4R_EF_EMIT_ANGLE_MAX) {
-            dangle =
-                (pParams[3] - pParams[2]) / pEmitter->mParameter.mEmitEmitDiv;
+            dangle = (pParams[3] - pParams[2]) / pEmitter->mParameter.mEmitEmitDiv;
         } else {
             // @bug EmitDiv value of 1 will cause division by zero
-            dangle = (pParams[3] - pParams[2]) /
-                     (pEmitter->mParameter.mEmitEmitDiv - 1);
+            dangle = (pParams[3] - pParams[2]) / (pEmitter->mParameter.mEmitEmitDiv - 1);
         }
     }
 

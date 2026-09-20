@@ -5,9 +5,8 @@
 namespace nw4r {
 namespace ef {
 
-void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager,
-                                 int count, u32 flags, f32* pParams, u16 life,
-                                 f32 lifeRnd, const math::MTX34* pSpace) {
+void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager, int count, u32 flags, f32* pParams,
+                                 u16 life, f32 lifeRnd, const math::MTX34* pSpace) {
 
     if (count < 1) {
         return;
@@ -17,21 +16,15 @@ void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager,
 
     f32 sizeX, sizeY, sizeZ;
 
-    sizeX = std::fabs(pParams[0]) > NW4R_MATH_FLT_EPSILON
-                ? pParams[0]
-                : NW4R_MATH_FLT_EPSILON;
+    sizeX = std::fabs(pParams[0]) > NW4R_MATH_FLT_EPSILON ? pParams[0] : NW4R_MATH_FLT_EPSILON;
 
     if (flags & EmitterDesc::EMIT_FLAG_XYZ_SAME_SIZE) {
         sizeY = sizeX;
         sizeZ = sizeX;
     } else {
-        sizeY = std::fabs(pParams[4]) > NW4R_MATH_FLT_EPSILON
-                    ? pParams[4]
-                    : NW4R_MATH_FLT_EPSILON;
+        sizeY = std::fabs(pParams[4]) > NW4R_MATH_FLT_EPSILON ? pParams[4] : NW4R_MATH_FLT_EPSILON;
 
-        sizeZ = std::fabs(pParams[5]) > NW4R_MATH_FLT_EPSILON
-                    ? pParams[5]
-                    : NW4R_MATH_FLT_EPSILON;
+        sizeZ = std::fabs(pParams[5]) > NW4R_MATH_FLT_EPSILON ? pParams[5] : NW4R_MATH_FLT_EPSILON;
     }
 
     f32 startAngle = pParams[2];
@@ -56,21 +49,15 @@ void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager,
         }
 
         for (int i = 0; i < count * (count * 4) + 2; i++) {
-            f32 x = static_cast<f32>(countX) / static_cast<f32>(maxX - 1) *
-                        NW4R_MATH_PI +
-                    (NW4R_MATH_PI / 2);
+            f32 x = static_cast<f32>(countX) / static_cast<f32>(maxX - 1) * NW4R_MATH_PI + (NW4R_MATH_PI / 2);
 
             f32 angle;
             if (maxAngle == 1) {
                 angle = startAngle;
             } else if (isSweepCircle) {
-                angle = startAngle + static_cast<f32>(countAngle) /
-                                         static_cast<f32>(maxAngle) *
-                                         sweepRange;
+                angle = startAngle + static_cast<f32>(countAngle) / static_cast<f32>(maxAngle) * sweepRange;
             } else {
-                angle = startAngle + static_cast<f32>(countAngle) /
-                                         static_cast<f32>(maxAngle - 1) *
-                                         sweepRange;
+                angle = startAngle + static_cast<f32>(countAngle) / static_cast<f32>(maxAngle - 1) * sweepRange;
             }
 
             countAngle++;
@@ -151,11 +138,9 @@ void EmitterFormSphere::Emission(Emitter* pEmitter, ParticleManager* pManager,
                 dist += inner * (1.0f - dist);
             }
 
-            angle = (pParams[3] - pParams[2]) * pEmitter->mRandom.RandFloat() +
-                    startAngle;
+            angle = (pParams[3] - pParams[2]) * pEmitter->mRandom.RandFloat() + startAngle;
 
-            f32 x = pEmitter->mRandom.RandFloat() * NW4R_MATH_PI +
-                    (NW4R_MATH_PI / 2);
+            f32 x = pEmitter->mRandom.RandFloat() * NW4R_MATH_PI + (NW4R_MATH_PI / 2);
 
             pos.x = sizeX * dist * -std::cos(x) * std::sin(angle);
             pos.y = sizeY * dist * -std::sin(x);

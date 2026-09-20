@@ -13,7 +13,7 @@ namespace ef {
 class Particle;
 
 class DrawSmoothStripeStrategy : public DrawStrategyImpl {
-public:
+  public:
     struct Trigonometric {
         f32 mCos; // at 0x0
         f32 mSin; // at 0x4
@@ -38,20 +38,17 @@ public:
         Trigonometric* mTrigonometric; // at 0xD4
     };
 
-public:
+  public:
     DrawSmoothStripeStrategy();
 
     virtual void Draw(const DrawInfo& rInfo,
                       ParticleManager* pManager); // at 0xC
 
-    virtual GetFirstDrawParticleFunc
-    GetGetFirstDrawParticleFunc(int drawOrder); // at 0x10
+    virtual GetFirstDrawParticleFunc GetGetFirstDrawParticleFunc(int drawOrder); // at 0x10
 
-    virtual GetNextDrawParticleFunc
-    GetGetNextDrawParticleFunc(int drawOrder); // at 0x14
+    virtual GetNextDrawParticleFunc GetGetNextDrawParticleFunc(int drawOrder); // at 0x14
 
-    virtual CalcAheadFunc
-    GetCalcAheadFunc(ParticleManager* pManager); // at 0x18
+    virtual CalcAheadFunc GetCalcAheadFunc(ParticleManager* pManager); // at 0x18
 };
 
 } // namespace ef

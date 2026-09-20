@@ -10,10 +10,10 @@ namespace nw4r {
 namespace ut {
 
 class DvdFileStream : public FileStream {
-public:
+  public:
     NW4R_UT_RTTI_DECL(DvdFileStream);
 
-public:
+  public:
     explicit DvdFileStream(s32 entrynum);
     DvdFileStream(const DVDFileInfo* pInfo, bool close);
     virtual ~DvdFileStream(); // at 0xC
@@ -78,20 +78,20 @@ public:
         return 32;
     } // at 0x3C
 
-private:
+  private:
     struct DvdFileStreamInfo {
         DVDFileInfo dvdInfo;   // at 0x0
         DvdFileStream* stream; // at 0x3C
     };
 
-private:
+  private:
     static void DvdAsyncCallback_(s32 result, DVDFileInfo* pInfo);
     static void DvdCBAsyncCallback_(s32 result, DVDCommandBlock* pBlock);
 
     void Initialize_();
     u32 AdjustReadLength_(u32 len);
 
-private:
+  private:
     FilePosition mFilePosition;     // at 0x14
     StreamCallback mCancelCallback; // at 0x1C
     void* mCancelArg;               // at 0x20

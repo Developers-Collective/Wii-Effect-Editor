@@ -5,9 +5,8 @@
 namespace nw4r {
 namespace ef {
 
-void EmitterFormLine::Emission(Emitter* pEmitter, ParticleManager* pManager,
-                               int count, u32 flags, f32* pParams, u16 life,
-                               f32 lifeRnd, const math::MTX34* pSpace) {
+void EmitterFormLine::Emission(Emitter* pEmitter, ParticleManager* pManager, int count, u32 flags, f32* pParams,
+                               u16 life, f32 lifeRnd, const math::MTX34* pSpace) {
 
     if (count < 1) {
         return;

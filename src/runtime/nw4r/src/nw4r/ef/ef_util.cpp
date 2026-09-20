@@ -10,7 +10,7 @@ namespace ef {
 u16 UtlistToArray(const ut::List* pList, void** ppArray, int maxlen) {
     u16 num = 0;
 
-    NW4R_UT_LIST_FOREACH (void, it, *pList, {
+    NW4R_UT_LIST_FOREACH(void, it, *pList, {
         ppArray[num++] = it;
 
         if (num >= maxlen) {
@@ -21,8 +21,7 @@ u16 UtlistToArray(const ut::List* pList, void** ppArray, int maxlen) {
     return num;
 }
 
-math::VEC3& Rotation2VecY(const nw4r::math::VEC3& rRot,
-                          nw4r::math::VEC3* pVec) {
+math::VEC3& Rotation2VecY(const nw4r::math::VEC3& rRot, nw4r::math::VEC3* pVec) {
 
     f32 sx = std::sin(rRot.x);
     f32 cx = std::cos(rRot.x);
@@ -119,12 +118,9 @@ void MtxGetRotation(const math::MTX34& rMtx, math::VEC3* pRot) {
     f32 sx, sy, sz;
     f32 f;
 
-    if (!((sx = std::sqrt(rMtx._00 * rMtx._00 + rMtx._10 * rMtx._10 +
-                           rMtx._20 * rMtx._20)) < NW4R_MATH_FLT_MIN) &&
-        !((sy = std::sqrt(rMtx._01 * rMtx._01 + rMtx._11 * rMtx._11 +
-                           rMtx._21 * rMtx._21)) < NW4R_MATH_FLT_MIN) &&
-        !((sz = std::sqrt(rMtx._02 * rMtx._02 + rMtx._12 * rMtx._12 +
-                           rMtx._22 * rMtx._22)) < NW4R_MATH_FLT_MIN)) {
+    if (!((sx = std::sqrt(rMtx._00 * rMtx._00 + rMtx._10 * rMtx._10 + rMtx._20 * rMtx._20)) < NW4R_MATH_FLT_MIN) &&
+        !((sy = std::sqrt(rMtx._01 * rMtx._01 + rMtx._11 * rMtx._11 + rMtx._21 * rMtx._21)) < NW4R_MATH_FLT_MIN) &&
+        !((sz = std::sqrt(rMtx._02 * rMtx._02 + rMtx._12 * rMtx._12 + rMtx._22 * rMtx._22)) < NW4R_MATH_FLT_MIN)) {
 
         f = -rMtx._20 / sx;
         pRot->y = std::asin(f);

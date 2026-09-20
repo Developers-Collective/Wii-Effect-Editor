@@ -16,7 +16,7 @@ class Font;
 struct Glyph;
 
 class CharWriter {
-public:
+  public:
     enum GradationMode {
         GRADMODE_NONE,
         GRADMODE_H,
@@ -25,7 +25,7 @@ public:
         GRADMODE_MAX
     };
 
-public:
+  public:
     CharWriter();
     ~CharWriter();
 
@@ -137,7 +137,7 @@ public:
     f32 GetFontAscent() const;
     f32 GetFontDescent() const;
 
-private:
+  private:
     struct ColorMapping {
         Color min; // at 0x0
         Color max; // at 0x4
@@ -171,8 +171,7 @@ private:
         TextureFilter filter; // at 0x8
 
         bool operator!=(const LoadingTexture& rOther) const {
-            return slot != rOther.slot || texture != rOther.texture ||
-                   filter != rOther.filter;
+            return slot != rOther.slot || texture != rOther.texture || filter != rOther.filter;
         }
 
         void Reset() {
@@ -184,7 +183,7 @@ private:
     static const u32 DEFAULT_COLOR_MAPPING_MIN = 0x00000000;
     static const u32 DEFAULT_COLOR_MAPPING_MAX = 0xFFFFFFFF;
 
-private:
+  private:
     static void SetupVertexFormat();
     static void SetupGXDefault();
     static void SetupGXWithColorMapping(Color min, Color max);
@@ -199,7 +198,7 @@ private:
         mLoadingTexture.Reset();
     }
 
-private:
+  private:
     ColorMapping mColorMapping;   // at 0x0
     VertexColor mVertexColor;     // at 0x8
     TextColor mTextColor;         // at 0x18

@@ -19,7 +19,7 @@ enum DrawStrategyType {
 };
 
 class DrawStrategyBuilder {
-public:
+  public:
     virtual DrawStrategy* Create(u32 type); // at 0x8
 };
 

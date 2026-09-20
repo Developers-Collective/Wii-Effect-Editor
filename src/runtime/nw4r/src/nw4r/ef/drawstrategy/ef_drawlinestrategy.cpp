@@ -9,16 +9,15 @@
 namespace nw4r {
 namespace ef {
 
-static void DrawPolygon(const nw4r::math::VEC3& rP0,
-                        const nw4r::math::VEC3& rP1, bool texCoord);
+static void DrawPolygon(const nw4r::math::VEC3& rP0, const nw4r::math::VEC3& rP1, bool texCoord);
 
-DrawLineStrategy::DrawLineStrategy() {}
+DrawLineStrategy::DrawLineStrategy() {
+}
 
 void DrawLineStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManager) {
     InitGraphics(rInfo, pManager);
 
-    const EmitterDrawSetting& rSetting =
-        *pManager->mResource->GetEmitterDrawSetting();
+    const EmitterDrawSetting& rSetting = *pManager->mResource->GetEmitterDrawSetting();
 
     math::MTX34 glbMtx;
     math::MTX34 posMtx;
@@ -27,11 +26,11 @@ void DrawLineStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManager) {
     math::MTX34Mult(&posMtx, rInfo.GetViewMtx(), &glbMtx);
     GXLoadPosMtxImm(posMtx, GX_PNMTX0);
 
-    GetFirstDrawParticleFunc pGetFirstFunc = GetGetFirstDrawParticleFunc(
-        rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
+    GetFirstDrawParticleFunc pGetFirstFunc =
+        GetGetFirstDrawParticleFunc(rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
 
-    GetNextDrawParticleFunc pGetNextFunc = GetGetNextDrawParticleFunc(
-        rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
+    GetNextDrawParticleFunc pGetNextFunc =
+        GetGetNextDrawParticleFunc(rSetting.mFlags & EmitterDrawSetting::FLAG_DRAW_ORDER);
 
     u8 prevLineWidth = 0;
     bool first = true;
@@ -80,11 +79,9 @@ void DrawLineStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManager) {
     }
 }
 
-void DrawLineStrategy::InitGraphics(const DrawInfo& rInfo,
-                                    ParticleManager* pManager) {
+void DrawLineStrategy::InitGraphics(const DrawInfo& rInfo, ParticleManager* pManager) {
 
-    const EmitterDrawSetting& rSetting =
-        *pManager->mResource->GetEmitterDrawSetting();
+    const EmitterDrawSetting& rSetting = *pManager->mResource->GetEmitterDrawSetting();
 
     InitTexture(rSetting);
     InitTev(rSetting, rInfo);
@@ -105,8 +102,7 @@ void DrawLineStrategy::InitGraphics(const DrawInfo& rInfo,
     GXSetCurrentMtx(GX_PNMTX0);
 }
 
-static void DrawPolygon(const nw4r::math::VEC3& rP0,
-                        const nw4r::math::VEC3& rP1, bool texCoord) {
+static void DrawPolygon(const nw4r::math::VEC3& rP0, const nw4r::math::VEC3& rP1, bool texCoord) {
 
     GXBegin(GX_LINES, GX_VTXFMT0, 2);
     {

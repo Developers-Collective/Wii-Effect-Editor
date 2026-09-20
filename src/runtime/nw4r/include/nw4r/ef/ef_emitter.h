@@ -38,13 +38,10 @@ struct EmitterInheritSetting {
 };
 
 class EmitterParameter {
-public:
-    enum InheritFlag {
-        INHERIT_FLAG_SCALE = (1 << 0),
-        INHERIT_FLAG_ROT = (1 << 1)
-    };
+  public:
+    enum InheritFlag { INHERIT_FLAG_SCALE = (1 << 0), INHERIT_FLAG_ROT = (1 << 1) };
 
-public:
+  public:
     u32 mComFlags;                  // at 0x0
     u32 mEmitFlags;                 // at 0x4
     f32 mEmitRatio;                 // at 0x8
@@ -78,18 +75,18 @@ public:
 class Emitter : public ReferencedObject {
     friend class Effect;
 
-public:
-    EmitterParameter mParameter;           // at 0x20
-    EvaluateStatus mEvalStatus;            // at 0xB4
-    EmitterResource* mResource;            // at 0xB8
-    Effect* mManagerEF;                    // at 0xBC
-    ActivityList mActivityList;            // at 0xC0
-    bool mIsFirstEmission;                 // at 0xDC
-    u16 mWaitTime;                         // at 0xDE
-    u16 mEmitIntervalWait;                 // at 0xE0
-    u32 mTick;                             // at 0xE4
-    u16 mCalcRemain;                       // at 0xE8
-    u16 mRandSeed;                         // at 0xEA
+  public:
+    EmitterParameter mParameter; // at 0x20
+    EvaluateStatus mEvalStatus;  // at 0xB4
+    EmitterResource* mResource;  // at 0xB8
+    Effect* mManagerEF;          // at 0xBC
+    ActivityList mActivityList;  // at 0xC0
+    bool mIsFirstEmission;       // at 0xDC
+    u16 mWaitTime;               // at 0xDE
+    u16 mEmitIntervalWait;       // at 0xE0
+    u32 mTick;                   // at 0xE4
+    u16 mCalcRemain;             // at 0xE8
+    u16 mRandSeed;               // at 0xEA
     math::VEC3 mLastGlobalPosition;
     math::VEC3 mPreviousGlobalPosition;
     Random mRandom;                        // at 0xEC
@@ -98,13 +95,13 @@ public:
     Particle* mpReferenceParticle;         // at 0xF8
     EmitterInheritSetting mInheritSetting; // at 0xFC
 
-protected:
+  protected:
     bool mMtxDirty; // at 0x104
 
-public:
+  public:
     math::MTX34 mMtx; // at 0x108
 
-public:
+  public:
     Emitter();
     ~Emitter();
 
@@ -114,9 +111,7 @@ public:
     virtual bool Initialize(Effect* pParent, EmitterResource* pResource,
                             u8 drawWeight); // at 0x10
 
-    virtual Emitter* CreateEmitter(EmitterResource* pResource,
-                                   EmitterInheritSetting* pSetting,
-                                   Particle* pParticle,
+    virtual Emitter* CreateEmitter(EmitterResource* pResource, EmitterInheritSetting* pSetting, Particle* pParticle,
                                    u16 calcRemain); // at 0x14
 
     virtual void CalcEmitter();   // at 0x18
@@ -133,13 +128,11 @@ public:
     void UpdateDatas(EmitterResource* pResource);
     bool InitializeDatas(EmitterResource* pResource, Effect* pEffect);
 
-    void CreateEmitterTmp(EmitterResource* pResource,
-                          EmitterInheritSetting* pSetting, Particle* pParticle,
+    void CreateEmitterTmp(EmitterResource* pResource, EmitterInheritSetting* pSetting, Particle* pParticle,
                           u16 calcRemain);
 
-    ParticleManager* FindParticleManager(EmitterResource* pResource,
-                                         bool inheritS, bool inheritR,
-                                         s8 inheritT, u8 weight);
+    ParticleManager* FindParticleManager(EmitterResource* pResource, bool inheritS, bool inheritR, s8 inheritT,
+                                         u8 weight);
 
     void Emission(ParticleManager* pManager, const math::MTX34* pSpace);
 
@@ -149,13 +142,10 @@ public:
     u16 GetNumParticleManager() const;
     ParticleManager* GetParticleManager(u16 idx);
 
-    u32 ForeachEmitter(ForEachFunc pFunc, ForEachParam param,
-                       bool ignoreLifeStatus);
-    u32 ForeachParticleManager(ForEachFunc pFunc, ForEachParam param,
-                               bool ignoreLifeStatus, bool propogate);
+    u32 ForeachEmitter(ForEachFunc pFunc, ForEachParam param, bool ignoreLifeStatus);
+    u32 ForeachParticleManager(ForEachFunc pFunc, ForEachParam param, bool ignoreLifeStatus, bool propogate);
 
-    static math::MTX34* RestructMatrix(math::MTX34* pResult, math::MTX34* pOrig,
-                                       bool inheritS, bool inheritR,
+    static math::MTX34* RestructMatrix(math::MTX34* pResult, math::MTX34* pOrig, bool inheritS, bool inheritR,
                                        s8 inheritT);
 
     bool GetFlagDisableCalc() const {

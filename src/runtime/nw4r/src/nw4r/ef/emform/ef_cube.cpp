@@ -5,10 +5,8 @@
 namespace nw4r {
 namespace ef {
 
-void EmitterFormCube::EmissionSub(math::VEC3& rPos, math::VEC3& rNormal,
-                                  Emitter* pEmitter, ParticleManager* pManager,
-                                  u16 life, f32 lifeRnd,
-                                  const math::MTX34* pSpace) {
+void EmitterFormCube::EmissionSub(math::VEC3& rPos, math::VEC3& rNormal, Emitter* pEmitter, ParticleManager* pManager,
+                                  u16 life, f32 lifeRnd, const math::MTX34* pSpace) {
 
     if (rNormal.x != 0.0f || rNormal.y != 0.0f || rNormal.z != 0.0f) {
         math::VEC3Normalize(&rNormal, &rNormal);
@@ -55,9 +53,8 @@ void EmitterFormCube::EmissionSub(math::VEC3& rPos, math::VEC3& rNormal,
     // clang-format on
 }
 
-void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
-                               int count, u32 flags, f32* pParams, u16 life,
-                               f32 lifeRnd, const math::MTX34* pSpace) {
+void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager, int count, u32 flags, f32* pParams,
+                               u16 life, f32 lifeRnd, const math::MTX34* pSpace) {
 
     if (count < 1) {
         return;
@@ -89,8 +86,7 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
     f32 innerRev = 1.0f - inner;
 
     f32 diffuseNrm = pEmitter->mParameter.mVelDiffusionEmitterNormal;
-    if (std::fabs(diffuseNrm - NW4R_MATH_PI) <
-        NW4R_MATH_PI * NW4R_MATH_FLT_EPSILON) {
+    if (std::fabs(diffuseNrm - NW4R_MATH_PI) < NW4R_MATH_PI * NW4R_MATH_FLT_EPSILON) {
 
         diffuseNrm -= NW4R_MATH_PI * NW4R_MATH_FLT_EPSILON;
     }
@@ -172,15 +168,13 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     rnd *= rnd;
                     rnd = 1.0f - rnd * innerRev * maxDepth;
                 } else {
-                    rnd = 1.0f -
-                          (pEmitter->mRandom.RandFloat() * innerRev * maxDepth);
+                    rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev * maxDepth);
                 }
 
                 pos.y *= rnd;
             }
 
-            if (diffuseNrm == 0.0f ||
-                (std::fabs(pos.x) < 1e-5f && std::fabs(pos.z) < 1e-5f)) {
+            if (diffuseNrm == 0.0f || (std::fabs(pos.x) < 1e-5f && std::fabs(pos.z) < 1e-5f)) {
 
                 normal.x = 0.0f;
                 normal.y = -1.0f;
@@ -222,15 +216,13 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                         rnd *= rnd;
                         rnd = 1.0f - rnd * innerRev * maxDepth;
                     } else {
-                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev *
-                                      maxDepth);
+                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev * maxDepth);
                     }
 
                     pos.z *= rnd;
                 }
 
-                if (diffuseNrm == 0.0f ||
-                    (std::fabs(pos.x) < 1e-5f && std::fabs(pos.y) < 1e-5f)) {
+                if (diffuseNrm == 0.0f || (std::fabs(pos.x) < 1e-5f && std::fabs(pos.y) < 1e-5f)) {
 
                     normal.x = 0.0f;
                     normal.y = 0.0f;
@@ -242,12 +234,10 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.x = pos.x;
                     normal.y = pos.y;
 
-                    normal.z =
-                        ylen * -std::sqrt(pos.x * pos.x + pos.y * pos.y);
+                    normal.z = ylen * -std::sqrt(pos.x * pos.x + pos.y * pos.y);
                 }
 
-                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd,
-                            pSpace);
+                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd, pSpace);
             }
 
             for (countX = 1; countX <= count; countX++) {
@@ -271,15 +261,13 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                         rnd *= rnd;
                         rnd = 1.0f - rnd * innerRev * maxDepth;
                     } else {
-                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev *
-                                      maxDepth);
+                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev * maxDepth);
                     }
 
                     pos.x *= rnd;
                 }
 
-                if (diffuseNrm == 0.0f ||
-                    (std::fabs(pos.y) < 1e-5f && std::fabs(pos.z) < 1e-5f)) {
+                if (diffuseNrm == 0.0f || (std::fabs(pos.y) < 1e-5f && std::fabs(pos.z) < 1e-5f)) {
 
                     normal.x = 1.0f;
                     normal.y = 0.0f;
@@ -294,8 +282,7 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.z = pos.z;
                 }
 
-                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd,
-                            pSpace);
+                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd, pSpace);
             }
 
             for (countX = count; countX >= 1; countX--) {
@@ -319,15 +306,13 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                         rnd *= rnd;
                         rnd = 1.0f - rnd * innerRev * maxDepth;
                     } else {
-                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev *
-                                      maxDepth);
+                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev * maxDepth);
                     }
 
                     pos.z *= rnd;
                 }
 
-                if (diffuseNrm == 0.0f ||
-                    (std::fabs(pos.x) < 1e-5f && std::fabs(pos.y) < 1e-5f)) {
+                if (diffuseNrm == 0.0f || (std::fabs(pos.x) < 1e-5f && std::fabs(pos.y) < 1e-5f)) {
 
                     normal.x = 0.0f;
                     normal.y = 0.0f;
@@ -341,8 +326,7 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.z = ylen * std::sqrt(pos.x * pos.x + pos.y * pos.y);
                 }
 
-                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd,
-                            pSpace);
+                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd, pSpace);
             }
 
             for (countX = count; countX >= 1; countX--) {
@@ -366,15 +350,13 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                         rnd *= rnd;
                         rnd = 1.0f - rnd * innerRev * maxDepth;
                     } else {
-                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev *
-                                      maxDepth);
+                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev * maxDepth);
                     }
 
                     pos.x *= rnd;
                 }
 
-                if (diffuseNrm == 0.0f ||
-                    (std::fabs(pos.y) < 1e-5f && std::fabs(pos.z) < 1e-5f)) {
+                if (diffuseNrm == 0.0f || (std::fabs(pos.y) < 1e-5f && std::fabs(pos.z) < 1e-5f)) {
 
                     normal.x = -1.0f;
                     normal.y = 0.0f;
@@ -383,14 +365,12 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     f32 cone = dist * diffuseNrm;
                     f32 ylen = 1.0f / std::tan(cone);
 
-                    normal.x =
-                        ylen * -std::sqrt(pos.y * pos.y + pos.z * pos.z);
+                    normal.x = ylen * -std::sqrt(pos.y * pos.y + pos.z * pos.z);
                     normal.y = pos.y;
                     normal.z = pos.z;
                 }
 
-                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd,
-                            pSpace);
+                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd, pSpace);
             }
         }
 
@@ -434,8 +414,7 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                             dir--;
                         }
 
-                        if (dir % 2 == 1 &&
-                            (dir != 1 || dirCountLife != count - 1)) {
+                        if (dir % 2 == 1 && (dir != 1 || dirCountLife != count - 1)) {
 
                             dirCountLife--;
                         }
@@ -467,15 +446,13 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                         rnd *= rnd;
                         rnd = 1.0f - rnd * innerRev * maxDepth;
                     } else {
-                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev *
-                                      maxDepth);
+                        rnd = 1.0f - (pEmitter->mRandom.RandFloat() * innerRev * maxDepth);
                     }
 
                     pos.y *= rnd;
                 }
 
-                if (diffuseNrm == 0.0f ||
-                    (std::fabs(pos.x) < 1e-5f && std::fabs(pos.z) < 1e-5f)) {
+                if (diffuseNrm == 0.0f || (std::fabs(pos.x) < 1e-5f && std::fabs(pos.z) < 1e-5f)) {
 
                     normal.x = 0.0f;
                     normal.y = 1.0f;
@@ -489,8 +466,7 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     normal.z = pos.z;
                 }
 
-                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd,
-                            pSpace);
+                EmissionSub(pos, normal, pEmitter, pManager, life, lifeRnd, pSpace);
             }
         }
     } else {
@@ -548,17 +524,14 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
             } else {
                 f32 topBottom = outerX * outerY * innerRev * outerZ;
                 f32 frontBack = outerX * outerY * inner * outerZ * innerRev;
-                f32 leftRight =
-                    outerX * innerRev * outerY * inner * outerZ * inner;
+                f32 leftRight = outerX * innerRev * outerY * inner * outerZ * inner;
 
-                f32 f = pEmitter->mRandom.RandFloat() *
-                        (topBottom + frontBack + leftRight);
+                f32 f = pEmitter->mRandom.RandFloat() * (topBottom + frontBack + leftRight);
 
                 if (f < topBottom) {
                     x = pEmitter->mRandom.RandFloat() * 2.0f - 1.0f;
 
-                    y = (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f) *
-                        innerRev;
+                    y = (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f) * innerRev;
                     y = y >= 0.0f ? 1.0f - y : -1.0f - y;
 
                     z = pEmitter->mRandom.RandFloat() * 2.0f - 1.0f;
@@ -566,12 +539,10 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     x = pEmitter->mRandom.RandFloat() * 2.0f - 1.0f;
                     y = (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f) * inner;
 
-                    z = (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f) *
-                        innerRev;
+                    z = (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f) * innerRev;
                     z = z >= 0.0f ? 1.0f - z : -1.0f - z;
                 } else {
-                    x = (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f) *
-                        innerRev;
+                    x = (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f) * innerRev;
                     x = x >= 0.0f ? 1.0f - x : -1.0f - x;
 
                     y = (pEmitter->mRandom.RandFloat() * 2.0f - 1.0f) * inner;
@@ -609,8 +580,7 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     f32 cone = dist * diffuseNrm;
                     f32 ylen = 1.0f / std::tan(cone);
 
-                    normal.x *=
-                        ylen * std::sqrt(pos.y * pos.y + pos.z * pos.z);
+                    normal.x *= ylen * std::sqrt(pos.y * pos.y + pos.z * pos.z);
                     normal.y = pos.y;
                     normal.z = pos.z;
                 } else if (normal.y != 0.0f) {
@@ -620,8 +590,7 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
                     f32 ylen = 1.0f / std::tan(cone);
 
                     normal.x = pos.x;
-                    normal.y *=
-                        ylen * std::sqrt(pos.x * pos.x + pos.z * pos.z);
+                    normal.y *= ylen * std::sqrt(pos.x * pos.x + pos.z * pos.z);
                     normal.z = pos.z;
                 } else {
                     dist = MAX(std::fabs(pos.x), std::fabs(pos.y));
@@ -631,8 +600,7 @@ void EmitterFormCube::Emission(Emitter* pEmitter, ParticleManager* pManager,
 
                     normal.x = pos.x;
                     normal.y = pos.y;
-                    normal.z *=
-                        ylen * std::sqrt(pos.x * pos.x + pos.y * pos.y);
+                    normal.z *= ylen * std::sqrt(pos.x * pos.x + pos.y * pos.y);
                 }
             }
 
