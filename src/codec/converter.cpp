@@ -6,40 +6,46 @@
 
 using namespace breff::codec;
 namespace fs = std::filesystem;
+
 namespace {
-Bytes readFile(const fs::path& path) {
-    std::ifstream input(path, std::ios::binary | std::ios::ate);
-    if (!input)
-        throw std::runtime_error("Cannot open input file: " + path.string());
-    auto length = input.tellg();
-    if (length < 0 || length > 256 * 1024 * 1024)
-        throw std::runtime_error("Input file exceeds 256 MiB");
-    Bytes bytes(static_cast<size_t>(length));
-    input.seekg(0);
-    if (!input.read(reinterpret_cast<char*>(bytes.data()), length))
-        throw std::runtime_error("Could not read input file");
-    return bytes;
+    Bytes readFile(const fs::path& path) {
+        std::ifstream input(path, std::ios::binary | std::ios::ate);
+        if (!input)
+            throw std::runtime_error("Cannot open input file: " + path.string());
+        auto length = input.tellg();
+        if (length < 0 || length > 256 * 1024 * 1024)
+            throw std::runtime_error("Input file exceeds 256 MiB");
+        Bytes bytes(static_cast<size_t>(length));
+        input.seekg(0);
+        if (!input.read(reinterpret_cast<char*>(bytes.data()), length))
+            throw std::runtime_error("Could not read input file");
+        return bytes;
+    }
+
+    Json readJson(const fs::path& path) {
+        auto bytes = readFile(path);
+        return Json::parse(bytes.begin(), bytes.end());
+    }
+
+    void writeFile(const fs::path& path, std::span<const uint8_t> bytes, bool overwrite) {
+        if (!overwrite && fs::exists(path))
+            throw std::runtime_error("Output exists: " + path.string());
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+        if (!output || !output.write(reinterpret_cast<const char*>(bytes.data()), bytes.size()))
+            throw std::runtime_error("Could not write output: " + path.string());
+    }
+
+    void writeJson(const fs::path& path, const Json& value, bool overwrite) {
+        auto text = value.dump(2) + "\n";
+        writeFile(path, {reinterpret_cast<const uint8_t*>(text.data()), text.size()}, overwrite);
+    }
+
+    bool validFilename(const std::string& name) {
+        return !name.empty() && name != "." && name != ".." &&
+               name.find_first_of("/\\:*?\"<>|\0", 0, 10) == std::string::npos;
+    }
 }
-Json readJson(const fs::path& path) {
-    auto bytes = readFile(path);
-    return Json::parse(bytes.begin(), bytes.end());
-}
-void writeFile(const fs::path& path, std::span<const uint8_t> bytes, bool overwrite) {
-    if (!overwrite && fs::exists(path))
-        throw std::runtime_error("Output exists: " + path.string());
-    std::ofstream output(path, std::ios::binary | std::ios::trunc);
-    if (!output || !output.write(reinterpret_cast<const char*>(bytes.data()), bytes.size()))
-        throw std::runtime_error("Could not write output: " + path.string());
-}
-void writeJson(const fs::path& path, const Json& value, bool overwrite) {
-    auto text = value.dump(2) + "\n";
-    writeFile(path, {reinterpret_cast<const uint8_t*>(text.data()), text.size()}, overwrite);
-}
-bool validFilename(const std::string& name) {
-    return !name.empty() && name != "." && name != ".." &&
-           name.find_first_of("/\\:*?\"<>|\0", 0, 10) == std::string::npos;
-}
-}
+
 int main(int argc, char** argv) {
     try {
         if (argc < 3) {
