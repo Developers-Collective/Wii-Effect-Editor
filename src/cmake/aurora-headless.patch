@@ -1,0 +1,164 @@
+--- a/lib/window.cpp
++++ b/lib/window.cpp
+@@ -359,7 +359,7 @@
+       SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, SDL_GetError());
+   TRY(SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, flags), "Failed to set {}: {}",
+       SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, SDL_GetError());
+-  TRY(SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_EXTERNAL_GRAPHICS_CONTEXT_BOOLEAN, backend != BACKEND_NULL),
++  TRY(SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_EXTERNAL_GRAPHICS_CONTEXT_BOOLEAN, backend != BACKEND_NULL && !SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false)),
+       "Failed to set {}: {}", SDL_PROP_WINDOW_CREATE_EXTERNAL_GRAPHICS_CONTEXT_BOOLEAN, SDL_GetError());
+   g_window = SDL_CreateWindowWithProperties(props);
+   if (g_window == nullptr) {
+@@ -409,6 +409,9 @@
+   /* We don't want to initialize anything input related here, otherwise the add events will get lost to the void */
+   TRY(SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight"), "Error setting {}: {}", SDL_HINT_ORIENTATIONS,
+       SDL_GetError());
++  if (SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false)) {
++    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "dummy");
++  }
+   TRY(SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_VIDEO), "Error initializing SDL: {}", SDL_GetError());
+   time::internal::set_pause_reason(time::internal::PauseReason::Surface,
+                                    !g_surfaceReady.load(std::memory_order_acquire));
+@@ -489,6 +492,9 @@
+ SDL_Renderer* get_sdl_renderer() { return g_renderer; }
+ 
+ bool is_paused() noexcept {
++  if (SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false)) {
++    return false;
++  }
+   if (!is_presentable()) {
+     return true;
+   }
+--- a/lib/aurora.cpp
++++ b/lib/aurora.cpp
+@@ -26,6 +26,7 @@
+ #include "window.hpp"
+ 
+ #include <SDL3/SDL_filesystem.h>
++#include <SDL3/SDL_hints.h>
+ #include <magic_enum.hpp>
+ 
+ #include "system_info.hpp"
+@@ -171,7 +172,9 @@
+   AURORA_ASSERT(window::create_renderer(), "Failed to initialize SDL renderer: {}", SDL_GetError());
+ #endif
+ 
+-  window::show_window();
++  if (!SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false)) {
++    window::show_window();
++  }
+   thread::set_current({
+       .name = "Main thread",
+       .affinity = thread::Affinity::SharedCache,
+@@ -236,7 +239,7 @@
+ bool begin_frame() noexcept {
+   ZoneScoped;
+ #ifdef AURORA_ENABLE_GX
+-  {
++  if (!SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false)) {
+     if (!window::is_presentable()) {
+       webgpu::release_surface();
+       return false;
+@@ -363,7 +366,7 @@
+         imgui::render(pass, imguiDrawData);
+         pass.End();
+       }
+-    } else {
++    } else if (!SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false)) {
+       Log.info("Skipping present; window not presentable");
+     }
+     webgpu::gpu_prof::frame_end(encoder);
+--- a/lib/webgpu/gpu.cpp
++++ b/lib/webgpu/gpu.cpp
+@@ -1,3 +1,4 @@
++#include <SDL3/SDL_hints.h>
+ #include "gpu.hpp"
+ 
+ #include <algorithm>
+@@ -780,7 +781,8 @@
+   g_dawnInstance->EnableBackendValidation(backend != WGPUBackendType::D3D12);
+ #endif
+ 
+-  if (!create_surface()) {
++  const bool headless = SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false);
++  if (!headless && !create_surface()) {
+     return false;
+   }
+   {
+@@ -1010,22 +1012,24 @@
+   }
+   g_queue = g_device.GetQueue();
+ 
+-  const wgpu::Status status = g_surface.GetCapabilities(g_adapter, &g_surfaceCapabilities);
+-  if (status != wgpu::Status::Success) {
+-    Log.error("Failed to get surface capabilities: {}", magic_enum::enum_name(status));
+-    return false;
+-  }
+-  if (g_surfaceCapabilities.formatCount == 0) {
+-    Log.error("Surface has no formats");
+-    return false;
+-  }
+-  if (g_surfaceCapabilities.presentModeCount == 0) {
+-    Log.error("Surface has no present modes");
+-    return false;
+-  }
+-  auto surfaceFormat = best_surface_format();
++  if (!headless) {
++    const wgpu::Status status = g_surface.GetCapabilities(g_adapter, &g_surfaceCapabilities);
++    if (status != wgpu::Status::Success) {
++      Log.error("Failed to get surface capabilities: {}", magic_enum::enum_name(status));
++      return false;
++    }
++    if (g_surfaceCapabilities.formatCount == 0) {
++      Log.error("Surface has no formats");
++      return false;
++    }
++    if (g_surfaceCapabilities.presentModeCount == 0) {
++      Log.error("Surface has no present modes");
++      return false;
++    }
++  }
++  auto surfaceFormat = headless ? wgpu::TextureFormat::RGBA8Unorm : best_surface_format();
+   g_vsyncEnabled.store(g_config.vsync, std::memory_order_release);
+-  auto presentMode = select_present_mode(g_surfaceCapabilities);
++  auto presentMode = headless ? wgpu::PresentMode::Immediate : select_present_mode(g_surfaceCapabilities);
+   Log.info("Using surface format {}, present mode {}", magic_enum::enum_name(surfaceFormat),
+            magic_enum::enum_name(presentMode));
+   const auto size = window::get_window_size();
+@@ -1083,7 +1087,7 @@
+ 
+ static void resize_swapchain_internal(uint32_t width, uint32_t height, uint32_t nativeWidth, uint32_t nativeHeight,
+                                       bool force) {
+-  if (!g_surface || !g_device || width == 0 || height == 0 || nativeHeight == 0 || nativeWidth == 0) {
++  if ((!g_surface && !SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false)) || !g_device || width == 0 || height == 0 || nativeHeight == 0 || nativeWidth == 0) {
+     return;
+   }
+   const bool sizeChanged = g_graphicsConfig.surfaceConfiguration.width != nativeWidth ||
+@@ -1102,7 +1106,9 @@
+   surfaceConfiguration.device = g_device;
+   {
+     window::SurfaceLock surfaceLock;
+-    g_surface.Configure(&surfaceConfiguration);
++    if (g_surface) {
++      g_surface.Configure(&surfaceConfiguration);
++    }
+   }
+   g_frameBuffer = create_render_texture(width, height, true);
+   g_frameBufferResolved = create_render_texture(width, height, false);
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -1,3 +1,4 @@
++#include <SDL3/SDL_hints.h>
+ #include "pipeline_cache.hpp"
+ 
+ #include "clear.hpp"
+@@ -436,6 +437,9 @@
+   ZoneScoped;
+ 
+   const PipelineRef hash = xxh3_hash(config, static_cast<HashType>(type));
++  if (priority == PipelinePriority::Normal && SDL_GetHintBoolean("EFFECT_EDITOR_HEADLESS", false)) {
++    priority = PipelinePriority::Blocking;
++  }
+   const bool blocking = priority == PipelinePriority::Blocking;
+   if (!blocking && hash == g_lastPipelineRef) {
+     return g_lastPipelineRef;

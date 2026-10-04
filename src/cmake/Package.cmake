@@ -1,9 +1,12 @@
 # Install only the editor component, excluding dependency SDKs and examples.
 set_target_properties(breff_editor_native PROPERTIES OUTPUT_NAME "EffectEditor")
 if(APPLE)
+    target_sources(breff_editor_native PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/editor/icon.icns")
+    set_source_files_properties(editor/icon.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(
         breff_editor_native
         PROPERTIES MACOSX_BUNDLE TRUE
+                   MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Info.plist.in"
                    MACOSX_BUNDLE_BUNDLE_NAME "Effect Editor"
                    MACOSX_BUNDLE_GUI_IDENTIFIER "org.effect-editor.app"
                    OUTPUT_NAME "Effect Editor")
@@ -30,6 +33,11 @@ elseif(WIN32)
         COMPONENT EffectEditor)
 else()
     set_target_properties(breff_editor_native PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
+    configure_file(editor/icon.png icons/hicolor/256x256/apps/org.effect-editor.png COPYONLY)
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/editor/icon.png"
+        DESTINATION icons/hicolor/256x256/apps RENAME org.effect-editor.png COMPONENT EffectEditor)
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/editor/icon.png"
+        DESTINATION icons/hicolor/256x256/mimetypes RENAME application-x-breff.png COMPONENT EffectEditor)
     install(TARGETS breff_editor_native RUNTIME_DEPENDENCY_SET effect_editor_deps RUNTIME DESTINATION .
                                                                                           COMPONENT EffectEditor)
     install(

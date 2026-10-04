@@ -44,7 +44,8 @@ set(AURORA_ENABLE_RMLUI
 FetchContent_Declare(
     aurora
     GIT_REPOSITORY https://github.com/encounter/aurora.git
-    GIT_TAG d0c931da2ed3f41d0e42736c2ab52a78c7cf1a9d)
+    GIT_TAG d0c931da2ed3f41d0e42736c2ab52a78c7cf1a9d
+    PATCH_COMMAND git apply --ignore-whitespace "${CMAKE_CURRENT_SOURCE_DIR}/cmake/aurora-headless.patch")
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(aurora json)
 add_subdirectory(codec)
@@ -52,7 +53,8 @@ add_subdirectory(runtime)
 
 # GUI executable on Windows and application bundle on macOS. On Linux this
 # remains a native executable and does not launch a terminal.
-add_executable(breff_editor_native WIN32 MACOSX_BUNDLE editor/main.cpp editor/preview_view.cpp editor/document.cpp)
+add_executable(breff_editor_native WIN32 MACOSX_BUNDLE editor/main.cpp editor/preview_view.cpp editor/document.cpp
+    editor/file_association.cpp editor/animation_export.cpp editor/apng_writer.cpp)
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../logo.png" EDITOR_LOGO_HEX HEX)
 string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," EDITOR_LOGO_BYTES "${EDITOR_LOGO_HEX}")
 configure_file(cmake/logo.h.in generated/logo.h @ONLY)
@@ -67,9 +69,14 @@ target_link_libraries(
             aurora::vi
             aurora::mtx
             nlohmann_json::nlohmann_json
-            PNG::PNG)
+            PNG::PNG
+            ZLIB::ZLIB)
 if(WIN32)
-    target_link_libraries(breff_editor_native PRIVATE windowscodecs ole32)
+    configure_file(cmake/windows.rc.in generated/windows.rc @ONLY)
+    target_sources(breff_editor_native PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/windows.rc")
+    target_link_libraries(breff_editor_native PRIVATE windowscodecs ole32 shell32 shlwapi advapi32)
+elseif(APPLE)
+    target_link_libraries(breff_editor_native PRIVATE "-framework CoreServices")
 endif()
 
 include(cmake/Package.cmake)

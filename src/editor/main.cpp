@@ -14,6 +14,8 @@
 #include "orbit_camera.h"
 #include "preview_view.h"
 #include "document.h"
+#include "file_association.h"
+#include "animation_export.h"
 #include "../codec/form.h"
 #include "../codec/texture.h"
 #include "../codec/animation.h"
@@ -74,6 +76,8 @@ namespace {
         uint64_t closingDocument = 0;
         bool exitRequested = false;
         bool closeAll = false, showCloseDialog = false, selectDocumentTab = true;
+        bool requestAssociationDialog = false;
+        std::string associationUserPath, associationError;
 
         struct TabView {
             std::string search, selectedTexture;
@@ -1048,6 +1052,38 @@ namespace {
     }
 
     void dialogs(Application& app) {
+        if (app.requestAssociationDialog) {
+            ImGui::OpenPopup("Open BREFF files");
+            app.requestAssociationDialog = false;
+        }
+        if (ImGui::BeginPopupModal("Open BREFF files", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::TextUnformatted("Use Effect Editor as the default application for .breff files?");
+            if (!app.associationError.empty()) {
+                ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 540 * uiScale);
+                ImGui::TextUnformatted(app.associationError.c_str());
+                ImGui::PopTextWrapPos();
+            }
+            if (ImGui::Button("Yes")) {
+                try {
+                    registerFileAssociation();
+                    rememberFileAssociationPrompt(app.associationUserPath.c_str());
+                    ImGui::CloseCurrentPopup();
+                } catch (const std::exception& error) {
+                    app.associationError = error.what();
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(app.associationError.empty() ? "No" : "Close")) {
+                try {
+                    if (app.associationError.empty())
+                        rememberFileAssociationPrompt(app.associationUserPath.c_str());
+                    ImGui::CloseCurrentPopup();
+                } catch (const std::exception& error) {
+                    app.associationError = error.what();
+                }
+            }
+            ImGui::EndPopup();
+        }
         if (app.requestImportDialog) {
             ImGui::OpenPopup("Import missing textures");
             app.requestImportDialog = false;
@@ -1947,6 +1983,9 @@ namespace {
 }
 
 int main(int argc, char** argv) {
+    if (auto result = exportAnimations(argc, argv))
+        return *result;
+
     bool smokeTest = false;
     for (int i = 1; i < argc; ++i)
         if (std::string(argv[i]) == "--smoke-test")
@@ -1961,6 +2000,7 @@ int main(int argc, char** argv) {
     config.vsync = true;
     config.logCallback = logCallback;
     config.desiredBackend = BACKEND_AUTO;
+    config.allowCpuAdapter = smokeTest;
     config.imGuiInitCallback = [](const AuroraWindowSize* size) {
         updateDpi(*size);
     };
@@ -1985,6 +2025,15 @@ int main(int argc, char** argv) {
         png_image_free(&logo);
     }
     placeWindow(app.window);
+    if (!smokeTest) {
+        try {
+            app.requestAssociationDialog = fileAssociationPromptNeeded(info.userPath);
+            if (app.requestAssociationDialog)
+                app.associationUserPath = info.userPath;
+        } catch (const std::exception& error) {
+            app.error = error.what();
+        }
+    }
     std::vector<std::string> paths;
     std::string initialEffect, initialTexture;
     for (int i = 1; i < argc; ++i) {
@@ -2024,6 +2073,15 @@ int main(int argc, char** argv) {
         for (const AuroraEvent* event = aurora_update(); event && event->type != AURORA_NONE; ++event)
             if (event->type == AURORA_EXIT)
                 close = true;
+            else if (event->type == AURORA_SDL_EVENT && event->sdl.type == SDL_EVENT_DROP_FILE && event->sdl.drop.data) {
+                const std::string path = event->sdl.drop.data;
+                auto extension = std::filesystem::u8path(path).extension().string();
+                std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
+                    return char(std::tolower(c));
+                });
+                if (extension == ".breff")
+                    app.enqueue({{"op", "open"}, {"breff", path}});
+            }
         app.pollInput();
         app.pollDialog();
         updateDpi(app.window);
@@ -2072,7 +2130,7 @@ int main(int argc, char** argv) {
         }
         aurora_end_frame();
         const bool smokeReady = !app.pending() &&
-                                ((!app.error.empty()) ||
+                                ((paths.empty() && initialEffect.empty()) || !app.error.empty() ||
                                  (app.loaded() && app.loadedGeneration == app.state.value("generation", 0) &&
                                   (initialEffect.empty() || app.selected() == initialEffect)));
         if (smokeTest && smokeReady) {
