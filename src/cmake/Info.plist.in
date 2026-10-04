@@ -1,27 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-    <key>CFBundleExecutable</key><string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
-    <key>CFBundleIdentifier</key><string>org.effect-editor.app</string>
-    <key>CFBundleName</key><string>Effect Editor</string>
-    <key>CFBundleIconFile</key><string>icon.icns</string>
-    <key>CFBundlePackageType</key><string>APPL</string>
-    <key>NSHighResolutionCapable</key><true/>
-    <key>CFBundleDocumentTypes</key><array><dict>
-        <key>CFBundleTypeName</key><string>BREFF effect archive</string>
-        <key>CFBundleTypeIconFile</key><string>icon.icns</string>
-        <key>CFBundleTypeRole</key><string>Editor</string>
-        <key>LSHandlerRank</key><string>Owner</string>
-        <key>LSItemContentTypes</key><array><string>org.effect-editor.breff</string></array>
-    </dict></array>
-    <key>UTExportedTypeDeclarations</key><array><dict>
-        <key>UTTypeIdentifier</key><string>org.effect-editor.breff</string>
-        <key>UTTypeDescription</key><string>BREFF effect archive</string>
-        <key>UTTypeIconFile</key><string>icon.icns</string>
-        <key>UTTypeConformsTo</key><array><string>public.data</string></array>
-        <key>UTTypeTagSpecification</key><dict>
-            <key>public.filename-extension</key><array><string>breff</string></array>
-            <key>public.mime-type</key><string>application/x-breff</string>
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
+    <key>CFBundleIdentifier</key>
+    <string>org.effect-editor.app</string>
+    <key>CFBundleName</key>
+    <string>Effect Editor</string>
+    <key>CFBundleIconFile</key>
+    <string>icon.icns</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>BREFF effect archive</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>icon.icns</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.effect-editor.breff</string>
+            </array>
         </dict>
-    </dict></array>
-</dict></plist>
+    </array>
+
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.effect-editor.breff</string>
+            <key>UTTypeDescription</key>
+            <string>BREFF effect archive</string>
+            <key>UTTypeIconFile</key>
+            <string>icon.icns</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.data</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>breff</string>
+                </array>
+                <key>public.mime-type</key>
+                <string>application/x-breff</string>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>
