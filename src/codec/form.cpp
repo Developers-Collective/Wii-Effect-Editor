@@ -5,7 +5,7 @@
 namespace breff::codec {
     namespace {
         void restrictForm(Json& node, const Json& model, unsigned version) {
-            if (version != 7)
+            if (version > 7)
                 return;
             const auto path = node.value("path", std::string());
             std::string target;
@@ -17,32 +17,60 @@ namespace breff::codec {
             }
             if (path.ends_with("/target") && path.starts_with("/animations/")) {
                 auto& choices = node["choices"];
-                std::erase_if(choices.get_ref<Json::array_t&>(), [](const Json& choice) {
-                    return !animationSupported(choice.get<std::string>(), 7);
+                std::erase_if(choices.get_ref<Json::array_t&>(), [version](const Json& choice) {
+                    return !animationSupported(choice.get<std::string>(), version);
                 });
             }
-            if (target == "FieldGravity" && path.ends_with("/subTargets")) {
+            if (path == "/emitter/particleOptions/expression" && model.at("emitter").at("particleType") == "Billboard")
+                std::erase_if(node["choices"].get_ref<Json::array_t&>(), [](const Json& choice) {
+                    return choice == "NormalNoRoll";
+                });
+            if (path == "/emitter/particleOptions/yDirection" && model.at("emitter").at("particleType") == "Billboard")
+                std::erase_if(node["choices"].get_ref<Json::array_t&>(), [version](const Json& choice) {
+                    return choice == "Speed5" || choice == "Speed6" || choice == "Speed7" ||
+                           (version == 5 && choice == "ParticleBoth");
+                });
+            if ((target == "FieldGravity" || target == "FieldRandom") && path.ends_with("/subTargets")) {
                 auto& options = node["choices"]["options"];
                 std::erase_if(options.get_ref<Json::array_t&>(), [](const Json& option) {
                     return option.at("key") != "power";
                 });
             }
+            if (target == "FieldRandom" && path.ends_with("/info/option"))
+                std::erase_if(node["choices"]["options"].get_ref<Json::array_t&>(), [](const Json& option) {
+                    return option.at("key") != "randomAllDirection";
+                });
             if (!node.contains("children"))
                 return;
             auto& children = node["children"].get_ref<Json::array_t&>();
             std::erase_if(children, [&](const Json& child) {
                 const auto field = child.value("path", std::string());
+                if (version <= 6 && field == "/particle/rotationOffsets")
+                    return true;
+                if (version == 5 && field.ends_with("/subTargets") && target != "EmitterParam" &&
+                    target != "EmitterSpeedSpecDir")
+                    return true;
+                if (version == 5 && field.ends_with("/isBaked"))
+                    return true;
+                if (version == 5 && field.ends_with("/slopeAdjust"))
+                    return true;
                 if (field == "/emitter/alphaInput" ||
                     (field.starts_with("/emitter/tevStages/") && field.ends_with("/texture")) ||
                     field.ends_with("/alphaPrimarySources") || field.ends_with("/alphaSecondarySources"))
+                    return true;
+                if (target == "FieldRandom" &&
+                    (field.find("/keyFrames/") != std::string::npos || field.find("/frames/") != std::string::npos ||
+                     field.find("/randomPool/") != std::string::npos) &&
+                    field.ends_with("/diffusion"))
                     return true;
                 if (target == "FieldGravity" &&
                     (field.find("/keyFrames/") != std::string::npos || field.find("/frames/") != std::string::npos ||
                      field.find("/randomPool/") != std::string::npos) &&
                     (field.ends_with("/xRot") || field.ends_with("/yRot") || field.ends_with("/zRot")))
                     return true;
-                if ((target == "FieldSpeed" || target == "FieldRandom") &&
-                    (field.ends_with("/info/space") || field.ends_with("/info/addTarget")))
+                if ((target == "FieldSpeed" || target == "FieldRandom") && field.ends_with("/info/space"))
+                    return true;
+                if (target == "FieldSpeed" && field.ends_with("/info/addTarget"))
                     return true;
                 return target == "FieldSpeed" && field.ends_with("/info/option");
             });

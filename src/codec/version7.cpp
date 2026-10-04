@@ -142,9 +142,10 @@ namespace breff::codec {
             } else if (kind == 39) {
                 if (info.size() != 12)
                     throw std::runtime_error("Invalid v7 random field info");
-                converted.integer(2, 1);
-                converted.zeros(2);
-                converted.integer(info.at(0x0A, 1), 1);
+                converted.integer(1, 1);
+                converted.integer(info.at(0x0B, 1), 1);
+                converted.zeros(1);
+                converted.integer((info.at(0x0A, 1) & 0x02) | 0x1C, 1);
                 converted.append(info.slice(0x00, 10));
                 converted.zeros(2);
             } else {
@@ -306,8 +307,8 @@ namespace breff::codec {
                 result.append(info.slice(0x04, 4));
             } else if (kind == 7) {
                 result.append(info.slice(0x04, 10));
-                result.integer(info.at(0x03, 1), 1);
-                result.zeros(1);
+                result.integer(info.at(0x03, 1) & 0x02, 1);
+                result.integer(info.at(0x01, 1), 1);
             } else {
                 const unsigned count = kind == 3 ? 5 : kind == 4 ? 6 : 4;
                 if (kind == 0) {

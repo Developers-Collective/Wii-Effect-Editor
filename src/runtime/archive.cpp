@@ -216,7 +216,7 @@ void decodeEffect(Reader r, EffectResource& e) {
     tracks(e.resource.emitterTracks, emitterCount, emitterSizes);
 }
 }
-void Archive::load(const std::filesystem::path& breff, const std::filesystem::path& breft) {
+void Archive::load(const std::filesystem::path& breff, const std::filesystem::path& breft, unsigned version) {
     Archive candidate;
     auto textureBytes = readFile(breft), effectBytes = readFile(breff);
     entries(textureBytes, 0x52454654, [&](const std::string& name, Reader r, size_t offset, size_t) {
@@ -246,6 +246,7 @@ void Archive::load(const std::filesystem::path& breff, const std::filesystem::pa
     entries(effectBytes, 0x52454646, [&](const std::string& name, Reader r, size_t offset, size_t size) {
         auto e = std::make_unique<EffectResource>();
         e->resource.name = name;
+        e->resource.version = version;
         decodeEffect({r.data.subspan(offset, size)}, *e);
         for (int i = 0; i < 3; ++i)
             if (auto t = candidate.textures.find(e->textures[i]); t != candidate.textures.end())

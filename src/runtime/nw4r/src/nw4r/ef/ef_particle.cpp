@@ -211,26 +211,31 @@ void Particle::Draw_GetColor(int layer, GXColor* pColorPri, GXColor* pColorSec) 
             cycle = 0xFFFF;
         }
 
-        pos = (mTick - 1) % cycle;
+        // A randomized flicker period can reach zero. Match Dolphin's Gekko divw
+        // zero-divisor result instead of invoking undefined C++ integer division.
+        auto divide = [cycle](s32 numerator) -> s32 {
+            return cycle ? numerator / cycle : (numerator < 0 ? -1 : 0);
+        };
+        pos = cycle ? (mTick - 1) % cycle : mTick - 1;
         alpha = 0;
 
         switch (rSetting.mAlphaFlickType) {
         case EmitterDrawSetting::ALPHAFLICK_TRIANGLE: {
             if (pos * 2 <= cycle) {
-                alpha = 128 - rSetting.mAlphaFlickAmplitude + rSetting.mAlphaFlickAmplitude * (pos * 4) / cycle;
+                alpha = 128 - rSetting.mAlphaFlickAmplitude + divide(rSetting.mAlphaFlickAmplitude * (pos * 4));
             } else {
-                alpha = 128 + rSetting.mAlphaFlickAmplitude * 3 + -(rSetting.mAlphaFlickAmplitude * pos * 4) / cycle;
+                alpha = 128 + rSetting.mAlphaFlickAmplitude * 3 + divide(-(rSetting.mAlphaFlickAmplitude * pos * 4));
             }
             break;
         }
 
         case EmitterDrawSetting::ALPHAFLICK_SAWTOOTH1: {
-            alpha = 128 + rSetting.mAlphaFlickAmplitude + -(rSetting.mAlphaFlickAmplitude * pos * 2) / cycle;
+            alpha = 128 + rSetting.mAlphaFlickAmplitude + divide(-(rSetting.mAlphaFlickAmplitude * pos * 2));
             break;
         }
 
         case EmitterDrawSetting::ALPHAFLICK_SAWTOOTH2: {
-            alpha = 128 - rSetting.mAlphaFlickAmplitude + rSetting.mAlphaFlickAmplitude * (pos * 2) / cycle;
+            alpha = 128 - rSetting.mAlphaFlickAmplitude + divide(rSetting.mAlphaFlickAmplitude * (pos * 2));
             break;
         }
 
@@ -244,7 +249,9 @@ void Particle::Draw_GetColor(int layer, GXColor* pColorPri, GXColor* pColorSec) 
         }
 
         case EmitterDrawSetting::ALPHAFLICK_SINE: {
-            alpha = 128 + rSetting.mAlphaFlickAmplitude * std::sin(static_cast<f32>(2 * NW4R_MATH_PI * pos / cycle));
+            alpha = cycle ? 128 + rSetting.mAlphaFlickAmplitude *
+                                    std::sin(static_cast<f32>(2 * NW4R_MATH_PI * pos / cycle))
+                          : 0;
             break;
         }
 

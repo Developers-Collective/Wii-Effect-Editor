@@ -1,20 +1,33 @@
 #include "effect.h"
 #include "animation.h"
 #include "version7.h"
+#include "version5.h"
 #include <algorithm>
 #include <tuple>
 
 namespace breff::codec {
     Json decodeEffect(std::span<const uint8_t> bytes, unsigned version, bool includeUnboundTextures) {
-        if (version < 7 || version > 11)
+        if (version < 5 || version > 11)
             throw std::runtime_error("Unsupported BREFF version");
         Reader r(bytes);
         const size_t particleOffset = 8 + r.at(0x04, 4);
         const auto emitterBytes = r.slice(0x00, particleOffset);
-        Json result = {
-            {"emitter", version == 7 ? decodeEmitter(expandV7Emitter(emitterBytes)) : decodeEmitter(emitterBytes)}};
+        Bytes emitter(emitterBytes.begin(), emitterBytes.end());
+        if (version == 5)
+            emitter = expandV5Emitter(emitter);
+        if (version <= 7)
+            emitter = expandV7Emitter(emitter);
+        Json result = {{"emitter", decodeEmitter(emitter)}};
+        if (result["emitter"]["particleType"] == "Billboard") {
+            auto& direction = result["emitter"]["particleOptions"]["yDirection"];
+            // Value 7 falls through to Speed in the game and has no name in the original JSON format.
+            if (direction == "Speed7" || (version == 5 && enumValue("BillboardAhead", direction) >= 4))
+                direction = "Speed";
+        }
         const size_t particleSize = 4 + r.at(particleOffset, 4);
-        result["particle"] = decodeParticle(r.slice(particleOffset, particleSize), includeUnboundTextures);
+        const auto particle = r.slice(particleOffset, particleSize);
+        result["particle"] = version <= 6 ? decodeParticle(expandLegacyParticle(particle), includeUnboundTextures)
+                                          : decodeParticle(particle, includeUnboundTextures);
         result["animations"] = Json::array();
         size_t offset = particleOffset + particleSize;
         std::vector<std::pair<size_t, bool>> tracks;
@@ -29,9 +42,12 @@ namespace breff::codec {
         }
         for (const auto& [size, init] : tracks) {
             const auto track = r.slice(offset, size);
-            result["animations"].push_back(version == 7
-                                               ? decodeAnimation(expandV7Animation(track), result["emitter"], init)
-                                               : decodeAnimation(track, result["emitter"], init));
+            Bytes animation(track.begin(), track.end());
+            if (version == 5)
+                animation = expandV5Animation(animation);
+            if (version <= 7)
+                animation = expandV7Animation(animation);
+            result["animations"].push_back(decodeAnimation(animation, result["emitter"], init));
             offset += size;
         }
         if (offset != bytes.size())
@@ -40,15 +56,19 @@ namespace breff::codec {
     }
 
     Bytes encodeEffect(const Json& value, unsigned version) {
-        if (version < 7 || version > 11)
+        if (version < 5 || version > 11)
             throw std::runtime_error("Unsupported BREFF version");
-        const auto emitter = encodeEmitter(value.at("emitter"));
+        auto emitter = encodeEmitter(value.at("emitter"));
+        if (version <= 7)
+            emitter = packV7Emitter(emitter);
+        if (version == 5)
+            emitter = packV5Emitter(emitter);
         Writer w;
-        if (version == 7)
-            w.append(packV7Emitter(emitter));
-        else
-            w.append(emitter);
-        w.append(encodeParticle(value.at("particle")));
+        w.append(emitter);
+        auto particle = encodeParticle(value.at("particle"));
+        if (version <= 6)
+            particle = packLegacyParticle(particle);
+        w.append(particle);
 
         struct Track {
             Bytes bytes;
@@ -59,8 +79,10 @@ namespace breff::codec {
         for (const auto& animation : value.at("animations")) {
             const std::string target = animation.at("target");
             auto track = encodeAnimation(animation, value.at("emitter"));
-            if (version == 7)
+            if (version <= 7)
                 track = packV7Animation(track);
+            if (version == 5)
+                track = packV5Animation(track);
             groups[target.starts_with("Emitter") ? 1 : 0].push_back(
                 {std::move(track), animation.value("isInit", false)});
         }
@@ -98,7 +120,7 @@ namespace breff::codec {
         if (value.at("particle") == previous.at("particle") && oldParticleSize == newParticleSize)
             std::copy(original.begin() + oldParticle, original.begin() + oldParticle + oldParticleSize,
                       encoded.begin() + newParticle);
-        else {
+        else if (version >= 7) {
             // These three values are particle rotation offsets. The legacy JSON
             // groups them with texture slots and omits them for unnamed textures.
             const char* names[] = {"texture1", "texture2", "textureInd"};

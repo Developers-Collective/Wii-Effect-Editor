@@ -12,8 +12,9 @@ namespace breff::codec {
     struct ResourceFile {
         std::string magic = "REFF", projectName;
         uint16_t version = 11;
+        bool compressed = false;
         std::vector<ResourceEntry> entries;
         static ResourceFile decode(std::span<const uint8_t> bytes);
-        Bytes encode() const;
+        Bytes encode(bool applyCompression = true) const;
     };
 }

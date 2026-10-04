@@ -1,11 +1,161 @@
 #include "resource_file.h"
+#include <algorithm>
+#include <array>
 #include <set>
 
 namespace breff::codec {
+
+    namespace {
+        constexpr uint8_t Lz11 = 0x11;
+        constexpr size_t WindowSize = 0x1000;
+        constexpr size_t MaximumMatch = 0x10110;
+        constexpr size_t MaximumArchiveSize = 256 * 1024 * 1024;
+
+        Bytes decompressArchive(std::span<const uint8_t> bytes) {
+            size_t position = 1;
+            auto readByte = [&]() {
+                if (position >= bytes.size())
+                    throw std::runtime_error("Truncated LZ11 archive");
+                return size_t(bytes[position++]);
+            };
+            auto readSize = [&](unsigned count) {
+                size_t size = 0;
+                for (unsigned i = 0; i < count; ++i)
+                    size |= readByte() << (8 * i);
+                return size;
+            };
+            size_t size = readSize(3);
+            if (!size)
+                size = readSize(4);
+            if (!size || size > MaximumArchiveSize)
+                throw std::runtime_error("Invalid LZ11 archive size");
+
+            Bytes output;
+            output.reserve(size);
+            while (output.size() < size) {
+                const auto flags = readByte();
+                for (unsigned mask = 0x80; mask && output.size() < size; mask >>= 1) {
+                    if (!(flags & mask)) {
+                        output.push_back(uint8_t(readByte()));
+                        continue;
+                    }
+
+                    const auto a = readByte(), b = readByte();
+                    size_t length, distance;
+                    if ((a >> 4) == 0) {
+                        const auto c = readByte();
+                        length = ((a & 0x0F) << 4 | b >> 4) + 0x11;
+                        distance = ((b & 0x0F) << 8 | c) + 1;
+                    } else if ((a >> 4) == 1) {
+                        const auto c = readByte(), d = readByte();
+                        length = ((a & 0x0F) << 12 | b << 4 | c >> 4) + 0x111;
+                        distance = ((c & 0x0F) << 8 | d) + 1;
+                    } else {
+                        length = (a >> 4) + 1;
+                        distance = ((a & 0x0F) << 8 | b) + 1;
+                    }
+                    if (distance > output.size() || length > size - output.size())
+                        throw std::runtime_error("Invalid LZ11 back-reference");
+                    for (size_t i = 0; i < length; ++i)
+                        output.push_back(output[output.size() - distance]);
+                }
+            }
+            return output;
+        }
+
+        Bytes compressArchive(std::span<const uint8_t> bytes) {
+            if (bytes.empty() || bytes.size() > MaximumArchiveSize)
+                throw std::runtime_error("Invalid LZ11 archive size");
+            Bytes output{Lz11};
+            const bool extended = bytes.size() > 0xFFFFFF;
+            for (unsigned i = 0; i < 3; ++i)
+                output.push_back(extended ? 0 : uint8_t(bytes.size() >> (8 * i)));
+            if (extended)
+                for (unsigned i = 0; i < 4; ++i)
+                    output.push_back(uint8_t(bytes.size() >> (8 * i)));
+
+            // Hash chains restrict the match search to the format's 4 KiB window.
+            // Store links in a ring so large textures do not require a second archive-sized buffer.
+            constexpr size_t Missing = std::numeric_limits<size_t>::max();
+            std::array<size_t, 0x10000> heads;
+            std::array<size_t, WindowSize> previous;
+            heads.fill(Missing);
+            previous.fill(Missing);
+            auto hash = [&](size_t position) {
+                return ((size_t(bytes[position]) * 251 + bytes[position + 1]) * 251 + bytes[position + 2]) & 0xFFFF;
+            };
+            auto remember = [&](size_t position) {
+                if (bytes.size() - position >= 3) {
+                    const auto key = hash(position);
+                    previous[position % WindowSize] = heads[key];
+                    heads[key] = position;
+                }
+            };
+
+            size_t position = 0;
+            while (position < bytes.size()) {
+                const auto flagPosition = output.size();
+                output.push_back(0);
+                for (unsigned mask = 0x80; mask && position < bytes.size(); mask >>= 1) {
+                    size_t length = 0, distance = 0;
+                    const auto limit = std::min(MaximumMatch, bytes.size() - position);
+                    if (limit >= 3) {
+                        auto match = heads[hash(position)];
+                        unsigned attempts = 0;
+                        while (match != Missing && position - match <= WindowSize && attempts++ < 256) {
+                            size_t count = 0;
+                            while (count < limit && bytes[match + count] == bytes[position + count])
+                                ++count;
+                            if (count > length) {
+                                length = count;
+                                distance = position - match;
+                                if (length == limit)
+                                    break;
+                            }
+                            match = previous[match % WindowSize];
+                        }
+                    }
+
+                    if (length < 3) {
+                        output.push_back(bytes[position]);
+                        remember(position++);
+                        continue;
+                    }
+                    output[flagPosition] |= uint8_t(mask);
+                    const auto offset = distance - 1;
+                    if (length <= 0x10) {
+                        output.push_back(uint8_t((length - 1) << 4 | offset >> 8));
+                    } else if (length <= 0x110) {
+                        const auto encoded = length - 0x11;
+                        output.push_back(uint8_t(encoded >> 4));
+                        output.push_back(uint8_t((encoded & 0x0F) << 4 | offset >> 8));
+                    } else {
+                        const auto encoded = length - 0x111;
+                        output.push_back(uint8_t(0x10 | encoded >> 12));
+                        output.push_back(uint8_t(encoded >> 4));
+                        output.push_back(uint8_t((encoded & 0x0F) << 4 | offset >> 8));
+                    }
+                    output.push_back(uint8_t(offset));
+                    const auto end = position + length;
+                    while (position < end)
+                        remember(position++);
+                }
+            }
+            return output;
+        }
+    }
+
     ResourceFile ResourceFile::decode(std::span<const uint8_t> bytes) {
+        const bool compressed = !bytes.empty() && bytes.front() == Lz11;
+        Bytes decompressed;
+        if (compressed) {
+            decompressed = decompressArchive(bytes);
+            bytes = decompressed;
+        }
         Reader r(bytes);
         r.check(0x00, 40);
         ResourceFile result;
+        result.compressed = compressed;
         result.magic = std::string(reinterpret_cast<const char*>(bytes.data()), 4);
         if ((result.magic != "REFF" && result.magic != "REFT") || r.at(0x04, 2) != 0xfeff ||
             r.at(0x08, 4) != bytes.size() || r.at(0x0C, 2) != 16 || r.at(0x0E, 2) != 1 ||
@@ -13,8 +163,8 @@ namespace breff::codec {
             throw std::runtime_error("Invalid BREFF/BREFT archive header");
 
         result.version = uint16_t(r.at(0x06, 2));
-        if (result.version < 7 || result.version > 11)
-            throw std::runtime_error("Supported resource versions are 7 through 11");
+        if (result.version < 5 || result.version > 11)
+            throw std::runtime_error("Supported resource versions are 5 through 11");
 
         const auto projectSize = r.at(0x14, 4), headerSize = r.at(0x18, 4);
         if (projectSize != bytes.size() - 0x18 || headerSize < 16 || headerSize > projectSize)
@@ -59,8 +209,8 @@ namespace breff::codec {
         return result;
     }
 
-    Bytes ResourceFile::encode() const {
-        if ((magic != "REFF" && magic != "REFT") || version < 7 || version > 11)
+    Bytes ResourceFile::encode(bool applyCompression) const {
+        if ((magic != "REFF" && magic != "REFT") || version < 5 || version > 11)
             throw std::runtime_error("Invalid destination resource format");
 
         Writer w;
@@ -114,6 +264,8 @@ namespace breff::codec {
 
         w.patch(0x08, w.bytes.size(), 4);
         w.patch(0x14, w.bytes.size() - 0x18, 4);
+        if (compressed && applyCompression)
+            return compressArchive(w.bytes);
         return std::move(w.bytes);
     }
 }

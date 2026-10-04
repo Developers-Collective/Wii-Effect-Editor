@@ -716,7 +716,7 @@ void Emitter::CalcEmitter() {
         default:
             throw std::runtime_error("Unknown v11 emitter animation target");
         }
-        breff::evaluateF32(track, {target, count}, animTime, mRandSeed, animSpan);
+        breff::evaluateF32(track, {target, count}, animTime, mRandSeed, animSpan, mResource->version);
         if (track[1] >= 112)
             mtxDirty = true;
     }

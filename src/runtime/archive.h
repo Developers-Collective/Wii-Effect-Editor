@@ -21,6 +21,6 @@ class Archive {
   public:
     std::map<std::string, std::unique_ptr<EffectResource>> effects;
     std::map<std::string, std::unique_ptr<TextureResource>> textures;
-    void load(const std::filesystem::path& breff, const std::filesystem::path& breft);
+    void load(const std::filesystem::path& breff, const std::filesystem::path& breft, unsigned version = 11);
 };
 }

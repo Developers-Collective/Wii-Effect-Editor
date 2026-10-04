@@ -235,7 +235,7 @@ void ParticleManager::Calc() {
                     count = 1;
                 } else
                     throw std::runtime_error("Unknown v11 byte animation target");
-                breff::evaluateU8(track, {target, count}, tick, seed, life);
+                breff::evaluateU8(track, {target, count}, tick, seed, life, mResource->version);
             } else if (type == 3 || type == 6) {
                 float* target = nullptr;
                 size_t count = 0;
@@ -274,13 +274,13 @@ void ParticleManager::Calc() {
                     throw std::runtime_error("Unknown v11 float animation target");
                 }
                 if (type == 6)
-                    breff::evaluateRotate(track, {target, count}, tick, seed, life);
+                    breff::evaluateRotate(track, {target, count}, tick, seed, life, mResource->version);
                 else
-                    breff::evaluateF32(track, {target, count}, tick, seed, life);
+                    breff::evaluateF32(track, {target, count}, tick, seed, life, mResource->version);
             } else if (type == 4) {
                 if (kind != 104 && kind != 108 && kind != 112)
                     throw std::runtime_error("Invalid texture animation target");
-                const auto selected = breff::evaluateTexture(track, tick, seed, life);
+                const auto selected = breff::evaluateTexture(track, tick, seed, life, mResource->version);
                 const auto name = breff::curveName(track, selected.name);
                 auto* texture = Resource::GetInstance()->_FindTexture(name.c_str(), nullptr);
                 if (!texture)
@@ -292,7 +292,7 @@ void ParticleManager::Calc() {
                 parameter.mTextureReverse =
                     (parameter.mTextureReverse & ~(3u << (layer * 2))) | ((selected.reverse & 3u) << (layer * 2));
             } else if (type == 5) {
-                for (const auto& entry : breff::evaluateChild(track, tick, seed, life)) {
+                for (const auto& entry : breff::evaluateChild(track, tick, seed, life, mResource->version)) {
                     const auto name = breff::curveName(track, (uint16_t(entry[10]) << 8) | entry[11]);
                     auto* child = Resource::GetInstance()->_FindEmitter(name.c_str(), nullptr);
                     if (!child)

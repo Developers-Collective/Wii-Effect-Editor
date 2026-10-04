@@ -255,6 +255,7 @@ struct EmitterResource {
     ParticleParameterDesc* particle = nullptr;
     std::vector<std::vector<u8>> particleTracks, emitterTracks;
     u16 particleInitTracks = 0, emitterInitTracks = 0;
+    unsigned version = 11;
     EmitterDesc* GetEmitterDesc() {
         return &emitter;
     }

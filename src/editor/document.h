@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <optional>
 
 namespace breff {
     class DocumentService {
@@ -20,12 +21,15 @@ namespace breff {
         std::vector<State> undo, redo;
         std::filesystem::path directory, effectPath, texturePath;
         codec::Bytes savedEffects, savedTextures;
+        mutable std::optional<bool> contentDirty;
+        bool savedEffectCompression = false, savedTextureCompression = false;
         codec::Bytes textureImportBytes;
         uint64_t textureImportToken = 0;
         unsigned generation = 0;
         unsigned originalVersion = 11, originalTextureVersion = 11;
         Json textureMetadata = Json::array(), externalTextureMetadata = Json::array();
         Json missingTextures = Json::array();
+        Json conversionWarnings = Json::object();
         std::map<std::string, codec::Bytes> previewTextures;
         std::map<std::string, std::string> previewTexturePaths;
         std::map<codec::Bytes, Json> imageCache;

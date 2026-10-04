@@ -13,6 +13,7 @@ void DrawBillboardStrategy::Draw(const DrawInfo& rInfo, ParticleManager* pManage
     const EmitterDrawSetting& rSetting = *pManager->mResource->GetEmitterDrawSetting();
 
     switch (rSetting.typeOption) {
+    case EmitterDrawSetting::ASSIST_BB_NOROLL:
     case EmitterDrawSetting::ASSIST_BB_NORMAL: {
         DrawNormalBillboard(rInfo, pManager);
         break;

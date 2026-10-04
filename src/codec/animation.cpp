@@ -1,6 +1,7 @@
 #include "animation.h"
 #include "version7.h"
 #include <array>
+#include <bit>
 #include <map>
 
 namespace breff::codec {
@@ -276,6 +277,12 @@ namespace breff::codec {
             for (unsigned i = 0; i < names.size(); ++i)
                 if (mask & (1 << i))
                     enabled.push_back(i);
+
+            // The binary mask can include parameters unused by the current emitter shape.
+            // They still occupy space in every key and range record.
+            const size_t storedComponents = std::popcount(mask);
+            const size_t unusedBytes = (storedComponents - enabled.size()) * (byte ? 1 : sizeof(float));
+
             auto ranges = [&](const Bytes& bytes) {
                 Json result = Json::array();
                 if (bytes.empty())
@@ -287,6 +294,7 @@ namespace breff::codec {
                     Json entry = Json::object();
                     for (auto index : enabled)
                         entry[names[index]] = Json::array({number(r, byte), number(r, byte)});
+                    r.skip(unusedBytes * 2);
                     if (rotate) {
                         entry["randomRotationDirection"] = r.integer(1) != 0;
                         r.skip(3);
@@ -303,6 +311,7 @@ namespace breff::codec {
                     Json frame = Json::object();
                     for (auto index : enabled)
                         frame[names[index]] = number(key, byte);
+                    key.skip(unusedBytes);
                     result["frames"].push_back(frame);
                 }
                 return result;
@@ -343,7 +352,7 @@ namespace breff::codec {
                 }
                 if (rotate && kind == 1)
                     frame["randomRotationDirection"] = range[index].at("randomRotationDirection");
-                const size_t payload = byte ? (enabled.size() + 1) / 2 * 2 : enabled.size() * 4;
+                const size_t payload = byte ? (storedComponents + 1) / 2 * 2 : storedComponents * sizeof(float);
                 key.position = start + 12 + payload;
                 key.check(key.position, 0);
                 result["keyFrames"].push_back(frame);

@@ -5,8 +5,10 @@ add_library(
     animation.cpp
     effect.cpp
     compatibility.cpp
+    legacy_animation.cpp
     texture.cpp
     form.cpp
-    version7.cpp)
+    version7.cpp
+    version5.cpp)
 target_include_directories(breff_codec PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(breff_codec PUBLIC nlohmann_json::nlohmann_json)

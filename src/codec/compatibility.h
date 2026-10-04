@@ -6,6 +6,7 @@ namespace breff::codec {
     struct EffectProjection {
         Json value;
         std::vector<size_t> animationIndices;
+        std::vector<std::string> warnings;
     };
 
     EffectProjection projectEffect(const Json& retained, unsigned version);

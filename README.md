@@ -8,6 +8,8 @@ A native C++ editor for Wii BREFF effect and BREFT texture archives, with an int
 
 ## Features
 
+- Open BREFF/BREFT versions v5 through v11 and convert between them. Downgrades translate supported behavior and report remaining limitations.
+- Save compressed or uncompressed archives with the **Compressed** toggle beside the version selector.
 - Edit effects with structured fields, color pickers, and animation controls, or edit JSON.
 - Add, rename, and delete effects and textures. Inspect which effects reference each texture.
 - Preview changes immediately, with looping, selectable random seeds, and optional grid and axes.

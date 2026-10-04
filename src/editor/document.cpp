@@ -282,8 +282,42 @@ namespace breff {
         Json metadata = Json::array();
         Json dependencies = Json::object();
         auto values = candidate.values;
-        for (auto& value : values)
-            value = codec::projectEffect(value, candidate.version).value;
+        Json warnings = Json::object();
+        for (auto& [name, value] : values.items()) {
+            auto projected = codec::projectEffect(value, candidate.version);
+            if (!projected.warnings.empty())
+                warnings[name] = projected.warnings;
+            value = std::move(projected.value);
+        }
+        if (!warnings.empty()) {
+            const auto directWarnings = warnings;
+            std::map<std::string, std::set<std::string>> children;
+            for (auto& [name, value] : values.items())
+                visit(value, "", [&](Json& object, const std::string&) {
+                    if (object.contains("childType") && object.contains("name") && object.at("name").is_string()) {
+                        const auto child = object.at("name").get<std::string>();
+                        if (!child.empty())
+                            children[name].insert(child);
+                    }
+                });
+            for (const auto& [name, references] : children) {
+                std::set<std::string> visited{name};
+                std::vector<std::string> pending(references.begin(), references.end());
+                while (!pending.empty()) {
+                    const auto child = std::move(pending.back());
+                    pending.pop_back();
+                    if (!visited.insert(child).second)
+                        continue;
+                    if (directWarnings.contains(child)) {
+                        if (!warnings.contains(name))
+                            warnings[name] = Json::array();
+                        warnings[name].push_back("Uses child effect " + child + " with conversion limitations.");
+                    }
+                    if (auto it = children.find(child); it != children.end())
+                        pending.insert(pending.end(), it->second.begin(), it->second.end());
+                }
+            }
+        }
         for (auto it = values.begin(); it != values.end(); ++it)
             visit(it.value(), "", [&](Json& value, const std::string& path) {
                 const auto key = textureKey(value, path);
@@ -343,16 +377,24 @@ namespace breff {
                 item["dependencies"] = users;
                 external.push_back(std::move(item));
             }
-        writePair(directory / "preview.breff", effects.encode(), directory / "preview.breft", textures.encode());
+        writePair(directory / "preview.breff", effects.encode(false), directory / "preview.breft",
+                  textures.encode(false));
         textureMetadata = std::move(metadata);
         externalTextureMetadata = std::move(external);
         missingTextures = std::move(missing);
+        conversionWarnings = std::move(warnings);
+        contentDirty.reset();
         ++generation;
     }
 
     Json DocumentService::state() const {
         if (!document.loaded)
             return {{"loaded", false}};
+        // Selection does not change file contents. Reuse the comparison until the next edit.
+        if (!contentDirty.has_value())
+            contentDirty = effectArchive(document).encode(false) != savedEffects ||
+                           textureArchive(document).encode(false) != savedTextures;
+
         Json names = Json::array();
         for (const auto& entry : document.effects.entries)
             names.push_back(entry.name);
@@ -361,14 +403,16 @@ namespace breff {
             effect = codec::projectEffect(effect, document.version).value;
         return {{"loaded", true},
                 {"path", utf8(effectPath)},
-                {"dirty", effectArchive(document).encode() != savedEffects ||
-                              textureArchive(document).encode() != savedTextures},
+                {"dirty", document.effects.compressed != savedEffectCompression ||
+                              document.textures.compressed != savedTextureCompression || *contentDirty},
                 {"project", document.effects.projectName},
                 {"version", document.version},
+                {"compressed", document.effects.compressed},
                 {"originalVersion", originalVersion},
                 {"originalTextureVersion", originalTextureVersion},
                 {"names", names},
                 {"errors", document.errors},
+                {"conversionWarnings", conversionWarnings},
                 {"selected", document.selected},
                 {"effect", effect},
                 {"texturePath", utf8(directory / "preview.breft")},
@@ -421,8 +465,11 @@ namespace breff {
             originalTextureVersion = document.textures.version;
             effectPath = path;
             texturePath = tex;
-            savedEffects = effectArchive(document).encode();
-            savedTextures = document.textures.encode();
+            savedEffects = effectArchive(document).encode(false);
+            savedTextures = document.textures.encode(false);
+            savedEffectCompression = document.effects.compressed;
+            savedTextureCompression = document.textures.compressed;
+            contentDirty = false;
             undo.clear();
             redo.clear();
             return state();
@@ -732,8 +779,8 @@ namespace breff {
                 tex.replace_extension(".breft");
             }
             const unsigned version = request.value("version", document.version);
-            if (version < 7 || version > 11)
-                throw std::runtime_error("Choose a BREFF version from 7 through 11");
+            if (version < 5 || version > 11)
+                throw std::runtime_error("Choose a BREFF version from 5 through 11");
             auto candidate = document;
             candidate.version = version;
             auto effects = effectArchive(candidate).encode(), textures = textureArchive(candidate).encode();
@@ -750,15 +797,24 @@ namespace breff {
             document = std::move(candidate);
             effectPath = path;
             texturePath = tex;
-            savedEffects = std::move(effects);
-            savedTextures = std::move(textures);
+            savedEffects = effectArchive(document).encode(false);
+            savedTextures = textureArchive(document).encode(false);
+            savedEffectCompression = document.effects.compressed;
+            savedTextureCompression = document.textures.compressed;
+            contentDirty = false;
             return state();
         }
         auto candidate = document;
-        if (op == "set_version") {
+        if (op == "set_compression") {
+            const bool compressed = request.at("compressed");
+            if (compressed == document.effects.compressed && compressed == document.textures.compressed)
+                return state();
+            candidate.effects.compressed = compressed;
+            candidate.textures.compressed = compressed;
+        } else if (op == "set_version") {
             const unsigned version = request.at("version");
-            if (version < 7 || version > 11)
-                throw std::runtime_error("Choose a BREFF version from 7 through 11");
+            if (version < 5 || version > 11)
+                throw std::runtime_error("Choose a BREFF version from 5 through 11");
             if (version == document.version)
                 return state();
             candidate.version = version;
@@ -1036,7 +1092,8 @@ namespace breff {
             }
         } else
             throw std::runtime_error("Unknown editor operation: " + op);
-        publish(candidate);
+        if (op != "set_compression")
+            publish(candidate);
         undo.push_back(document);
         if (undo.size() > 100)
             undo.erase(undo.begin());

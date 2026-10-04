@@ -145,6 +145,7 @@ namespace {
         int loadedGeneration = -1;
         std::string previewError;
         bool loop = true, showGrid = true, showAxes = true, textureMode = false, editingRaw = false;
+        bool warningsOpen = false;
         int selectResourceTab = -1;
         std::string resourceName, selectedTexture, replacementTexture;
         uint64_t editRevision = 0, sentRevision = 0, failedRevision = ~uint64_t(0);
@@ -437,7 +438,7 @@ namespace {
                 loadedGeneration = -1;
                 try {
                     archive.load(std::filesystem::u8path(state.at("snapshot").get<std::string>()),
-                                 std::filesystem::u8path(state.at("texturePath").get<std::string>()));
+                                 std::filesystem::u8path(state.at("texturePath").get<std::string>()), state.value("version", 11));
                     loadedGeneration = state.value("generation", 0);
                     previewError.clear();
                 } catch (const std::exception& e) {
@@ -1520,7 +1521,7 @@ namespace {
         };
         ImGui::SetNextItemWidth(75 * uiScale);
         if (ImGui::BeginCombo("##Save version", versionLabel(app.saveVersion).c_str())) {
-            for (int version = 7; version <= 11; ++version)
+            for (int version = 5; version <= 11; ++version)
                 if (ImGui::Selectable(versionLabel(version).c_str(), app.saveVersion == version)) {
                     app.applyThen({{"op", "set_version"}, {"version", version}});
                 }
@@ -1529,6 +1530,12 @@ namespace {
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(
                 "Version used by fields, preview, and saving. Unsupported values are kept until this file is closed.");
+        ImGui::SameLine();
+        bool compressed = app.state.value("compressed", false);
+        if (ImGui::Checkbox("Compressed", &compressed))
+            app.applyThen({{"op", "set_compression"}, {"compressed", compressed}});
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Save the BREFF and BREFT with LZ11 compression.");
         ImGui::SameLine();
         if (ImGui::Button("Undo") || undoShortcut) {
             if (app.dirtyDraft || app.rawDirty) {
@@ -1683,14 +1690,17 @@ namespace {
         divider();
         ImGui::EndDisabled();
         dialogs(app);
-        if (app.busy) {
-            ImGui::SameLine();
-            ImGui::TextDisabled("Working…");
-        }
         if (!app.error.empty())
             ImGui::TextWrapped("%s", app.error.c_str());
-        float width = ImGui::GetContentRegionAvail().x;
-        float height = ImGui::GetContentRegionAvail().y;
+        const auto conversionWarnings = app.state.value("conversionWarnings", Json::object());
+        const float width = ImGui::GetContentRegionAvail().x;
+        const float availableHeight = ImGui::GetContentRegionAvail().y;
+        const float warningDetailsHeight = std::min(220.f * uiScale, availableHeight * .3f);
+        const float warningsHeight = conversionWarnings.empty()
+                                         ? 0.f
+                                         : ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y +
+                                               (app.warningsOpen ? warningDetailsHeight : 0.f);
+        const float height = std::max(1.f, availableHeight - warningsHeight);
         ImGui::BeginChild("effects", ImVec2(std::clamp(width * .19f, 180.f * uiScale, 300.f * uiScale), height), true);
         ImGui::TextUnformatted(app.textureMode ? "TEXTURES" : "EFFECTS");
         ImGui::SetNextItemWidth(-1);
@@ -1904,6 +1914,30 @@ namespace {
             app.camera.rotate(delta.x, delta.y);
         }
         ImGui::EndChild();
+        if (!conversionWarnings.empty()) {
+            const auto label = "Conversion warnings (" + std::to_string(conversionWarnings.size()) +
+                               " effects)###conversion-warnings";
+            ImGui::SetNextItemOpen(app.warningsOpen, ImGuiCond_Always);
+            app.warningsOpen = ImGui::CollapsingHeader(label.c_str());
+            if (app.warningsOpen) {
+                ImGui::BeginChild("conversion-warning-details", ImVec2(0, warningDetailsHeight));
+                ImGui::PushTextWrapPos();
+                for (const auto& [name, warnings] : conversionWarnings.items()) {
+                    ImGui::BeginDisabled(app.pending() || app.disconnected || app.dirtyDraft || app.rawDirty);
+                    if (ImGui::Selectable(name.c_str(), !app.textureMode && name == app.selected())) {
+                        app.applyThen({{"op", "select"}, {"name", name}});
+                        app.textureMode = false;
+                        app.selectResourceTab = 0;
+                    }
+                    ImGui::EndDisabled();
+                    for (const auto& warning : warnings)
+                        ImGui::BulletText("%s", warning.get_ref<const std::string&>().c_str());
+                    ImGui::Spacing();
+                }
+                ImGui::PopTextWrapPos();
+                ImGui::EndChild();
+            }
+        }
         ImGui::End();
     }
 
@@ -1918,6 +1952,7 @@ int main(int argc, char** argv) {
         if (std::string(argv[i]) == "--smoke-test")
             smokeTest = true;
     int renderedFrames = 0;
+    unsigned peakParticles = 0;
     AuroraConfig config{};
     config.appName = "Effect Editor";
     config.windowWidth = 1500;
@@ -2036,9 +2071,17 @@ int main(int argc, char** argv) {
             }
         }
         aurora_end_frame();
-        if (++renderedFrames == 120 && smokeTest) {
-            std::fprintf(stderr, "BREFF editor rendered 120 frames; active particles: %u\n", app.engine.particles());
-            app.quitting = true;
+        const bool smokeReady = !app.pending() &&
+                                ((!app.error.empty()) ||
+                                 (app.loaded() && app.loadedGeneration == app.state.value("generation", 0) &&
+                                  (initialEffect.empty() || app.selected() == initialEffect)));
+        if (smokeTest && smokeReady) {
+            peakParticles = std::max(peakParticles, app.engine.particles());
+            if (++renderedFrames == 120) {
+                std::fprintf(stderr, "BREFF editor rendered 120 ready frames. Active particles: %u. Peak particles: %u\n",
+                             app.engine.particles(), peakParticles);
+                app.quitting = true;
+            }
         }
         if (ImGui::GetTime() - app.lastSubmission > .12)
             app.apply();
