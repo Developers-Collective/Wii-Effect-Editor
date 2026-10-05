@@ -2,6 +2,8 @@
 #include "apng_writer.h"
 #include "document.h"
 #include "preview_view.h"
+#include "framebuffer_preview.h"
+#include "image_export.h"
 #include "../runtime/engine.h"
 #include "../codec/effect.h"
 #include <aurora/aurora.h>
@@ -274,7 +276,8 @@ namespace {
         return result;
     }
 
-    void setupView(unsigned size, const breff::Engine::Bounds& bounds, bool top, nw4r::ef::DrawInfo& info) {
+    float setupView(unsigned size, const breff::Engine::Bounds& bounds, bool top, nw4r::ef::DrawInfo& info,
+                    Mtx44 projection) {
         OrbitCamera camera;
         camera.pitch = top ? 1.5707963267948966f : 0;
         std::array<float, 3> center{};
@@ -290,7 +293,6 @@ namespace {
         const float depth = bounds.empty ? 1 : bounds.maximum[depthAxis] - bounds.minimum[depthAxis];
         camera.distance = std::max(1.f, depth * 2 + radius * 2);
         drawPreviewGrid({0, 0, float(size), float(size)}, camera, false, false);
-        Mtx44 projection;
         C_MTXOrtho(projection, radius, -radius, -radius, radius, .001f, camera.distance + depth + radius * 2);
         GXSetProjection(projection, GX_ORTHOGRAPHIC);
         nw4r::math::MTX34 view;
@@ -299,6 +301,7 @@ namespace {
             for (unsigned column = 0; column < 3; ++column)
                 view.m[row][3] -= view.m[row][column] * center[column];
         info.SetViewMtx(view);
+        return camera.distance + depth * .5f + radius;
     }
 
     void whiteBackground(unsigned size) {
@@ -320,7 +323,8 @@ namespace {
     }
 
     void render(breff::Engine& engine, breff::Archive& archive, Capture& capture, const std::string& name,
-                const fs::path& destination, unsigned size, const Animation& animation, bool top) {
+                const fs::path& destination, unsigned size, const Animation& animation, bool top,
+                breff::FramebufferPreview& framebuffer, const breff::FramebufferSettings& settings) {
         const auto temporary = fs::path(destination).concat(".tmp");
         try {
             breff::ApngWriter png(temporary, size, animation.end - animation.begin);
@@ -339,16 +343,25 @@ namespace {
                 aurora_update();
                 if (!aurora_begin_frame())
                     throw std::runtime_error("Could not begin headless rendering");
+                framebuffer.capture(settings, size, size);
                 if (!aurora::gfx::create_pass(size, size))
                     throw std::runtime_error("Could not create the APNG render target");
-                setupView(size, animation.bounds, top, info);
-                engine.draw(info);
+                Mtx44 projection;
+                const float backgroundDepth = setupView(size, animation.bounds, top, info, projection);
+                framebuffer.background(settings, {0, 0, float(size), float(size)}, projection, backgroundDepth);
+                framebuffer.draw(engine, archive, settings, info, projection);
                 auto pixels = capture.finishFrame();
+                if (settings.active() && settings.showBackground) {
+                    for (size_t i = 3; i < pixels.size(); i += 4)
+                        pixels[i] = 255;
+                    png.frame(pixels);
+                    continue;
+                }
                 if (!aurora_begin_frame() || !aurora::gfx::create_pass(size, size))
                     throw std::runtime_error("Could not begin transparency capture");
                 whiteBackground(size);
-                setupView(size, animation.bounds, top, info);
-                engine.draw(info);
+                setupView(size, animation.bounds, top, info, projection);
+                framebuffer.draw(engine, archive, settings, info, projection);
                 const auto white = capture.finishFrame();
                 for (size_t i = 0; i < pixels.size(); i += 4) {
                     // Black/white captures recover coverage even when GX alpha writes are
@@ -386,6 +399,7 @@ std::optional<int> exportAnimations(int argc, char** argv) {
         fs::path input, textures, output;
         std::vector<fs::path> textureFolders;
         std::string selected;
+        breff::FramebufferSettings framebufferSettings;
         unsigned size = 1024;
         unsigned jobs = std::clamp(std::thread::hardware_concurrency() / 2, 1u, 4u);
         unsigned worker = 0, workers = 1;
@@ -405,6 +419,12 @@ std::optional<int> exportAnimations(int argc, char** argv) {
                 textures = fs::u8path(value());
             else if (argument == "--texture-folder")
                 textureFolders.push_back(fs::u8path(value()));
+            else if (argument == "--framebuffer-image")
+                framebufferSettings.imagePath = value();
+            else if (argument == "--framebuffer-texture")
+                framebufferSettings.names.insert(value());
+            else if (argument == "--hide-framebuffer-background")
+                framebufferSettings.showBackground = false;
             else if (argument == "--size") {
                 const auto text = value();
                 size_t consumed = 0;
@@ -435,12 +455,37 @@ std::optional<int> exportAnimations(int argc, char** argv) {
         }
         if (input.empty() || output.empty())
             throw std::runtime_error(
-                "Usage: EffectEditor --export-apngs FILE.breff --output FOLDER [--breft FILE.breft] [--texture-folder FOLDER] [--size 1024] [--jobs COUNT] [--effect NAME]");
+                "Usage: EffectEditor --export-apngs FILE.breff --output FOLDER [--breft FILE.breft] [--texture-folder FOLDER] [--size 1024] [--jobs COUNT] [--effect NAME] [--framebuffer-image FILE --framebuffer-texture NAME ...] [--hide-framebuffer-background]");
+        if (framebufferSettings.imagePath.empty() != framebufferSettings.names.empty())
+            throw std::runtime_error("Supply --framebuffer-image and at least one --framebuffer-texture together");
+        if (!framebufferSettings.imagePath.empty()) {
+            framebufferSettings.image = std::make_shared<breff::codec::TextureImage>(
+                breff::loadImageFile(fs::u8path(framebufferSettings.imagePath)));
+            framebufferSettings.enabled = true;
+        } else if (!framebufferSettings.showBackground)
+            throw std::runtime_error("--hide-framebuffer-background requires --framebuffer-image");
         for (const auto& folder : textureFolders)
             if (!fs::is_directory(folder))
                 throw std::runtime_error("Texture folder does not exist: " + utf8(folder));
         if (worker >= workers)
             throw std::runtime_error("Invalid APNG worker index");
+        breff::DocumentService document;
+        auto response = document.handle({{"op", "open"}, {"breff", utf8(input)}, {"breft", utf8(textures)}});
+        if (!response.value("ok", false))
+            throw std::runtime_error(response.value("error", "Could not open BREFF"));
+        for (const auto& folder : textureFolders) {
+            response = document.handle({{"op", "preview_texture_folder"}, {"path", utf8(folder)}});
+            if (!response.value("ok", false))
+                throw std::runtime_error("Could not load texture folder " + utf8(folder) + ": " +
+                                         response.value("error", "Unknown error"));
+        }
+        const auto& state = response.at("data");
+        const auto textureNames = breff::referencedTextureNames(state);
+        for (const auto& name : framebufferSettings.names)
+            if (!textureNames.contains(name))
+                throw std::runtime_error("Framebuffer texture is not referenced by this BREFF: " + name);
+        if (!state.at("errors").empty())
+            throw std::runtime_error("Some effects could not be decoded: " + state.at("errors").dump());
         if (!child && jobs > 1 && selected.empty()) {
             std::vector<SDL_Process*> processes;
             try {
@@ -477,19 +522,6 @@ std::optional<int> exportAnimations(int argc, char** argv) {
                 throw;
             }
         }
-        breff::DocumentService document;
-        auto response = document.handle({{"op", "open"}, {"breff", utf8(input)}, {"breft", utf8(textures)}});
-        if (!response.value("ok", false))
-            throw std::runtime_error(response.value("error", "Could not open BREFF"));
-        for (const auto& folder : textureFolders) {
-            response = document.handle({{"op", "preview_texture_folder"}, {"path", utf8(folder)}});
-            if (!response.value("ok", false))
-                throw std::runtime_error("Could not load texture folder " + utf8(folder) + ": " +
-                                         response.value("error", "Unknown error"));
-        }
-        const auto& state = response.at("data");
-        if (!state.at("errors").empty())
-            throw std::runtime_error("Some effects could not be decoded: " + state.at("errors").dump());
         breff::Archive archive;
         const auto snapshot = fs::u8path(state.at("snapshot").get<std::string>());
         archive.load(snapshot, fs::u8path(state.at("texturePath").get<std::string>()), state.at("version"));
@@ -527,6 +559,7 @@ std::optional<int> exportAnimations(int argc, char** argv) {
         GXInit(nullptr, 0);
         {
             Capture capture(size);
+            breff::FramebufferPreview framebuffer;
             breff::Engine engine;
             std::set<std::string> usedNames;
             unsigned index = 0;
@@ -543,7 +576,8 @@ std::optional<int> exportAnimations(int argc, char** argv) {
                 for (const bool top : {false, true}) {
                     const auto animation = measure(engine, archive, effect.name, duration, top);
                     render(engine, archive, capture, effect.name,
-                           output / fs::u8path(unique + (top ? "_top.png" : "_front.png")), size, animation, top);
+                           output / fs::u8path(unique + (top ? "_top.png" : "_front.png")), size, animation, top,
+                           framebuffer, framebufferSettings);
                 }
             }
         }

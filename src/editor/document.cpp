@@ -155,8 +155,7 @@ namespace breff {
             return result;
         }
 
-        Bytes importImage(const fs::path& path, codec::TextureFormat format = codec::TextureFormat::GX_RGBA8,
-                          codec::PaletteFormat paletteFormat = codec::PaletteFormat::GX_TL_RGB5A3) {
+        codec::TextureImage decodeImageFile(const fs::path& path, unsigned maxDimension) {
             auto extension = path.extension().string();
             std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
                 return char(std::tolower(c));
@@ -176,13 +175,13 @@ namespace breff {
 
                 if (!png_image_begin_read_from_memory(&image, bytes.data(), bytes.size()))
                     throw std::runtime_error("Could not read PNG: " + std::string(image.message));
-                if (!image.width || !image.height || image.width > 1024 || image.height > 1024)
-                    throw std::runtime_error("GX images must be between 1 and 1024 pixels per dimension");
+                if (!image.width || !image.height || image.width > maxDimension || image.height > maxDimension)
+                    throw std::runtime_error("Image dimensions must be between 1 and " + std::to_string(maxDimension));
                 image.format = PNG_FORMAT_RGBA;
                 Bytes pixels(PNG_IMAGE_SIZE(image));
                 if (!png_image_finish_read(&image, nullptr, pixels.data(), 0, nullptr))
                     throw std::runtime_error("Could not decode PNG: " + std::string(image.message));
-                return codec::encodeTexture(image.width, image.height, pixels, format, paletteFormat);
+                return {image.width, image.height, codec::TextureFormat::GX_RGBA8, std::move(pixels)};
             }
 #ifdef _WIN32
             using Microsoft::WRL::ComPtr;
@@ -210,19 +209,29 @@ namespace breff {
             check(decoder->GetFrame(0, &frame));
             UINT width = 0, height = 0;
             check(frame->GetSize(&width, &height));
-            if (!width || !height || width > 1024 || height > 1024)
-                throw std::runtime_error("GX images must be between 1 and 1024 pixels per dimension");
+            if (!width || !height || width > maxDimension || height > maxDimension)
+                throw std::runtime_error("Image dimensions must be between 1 and " + std::to_string(maxDimension));
             ComPtr<IWICFormatConverter> converter;
             check(factory->CreateFormatConverter(&converter));
             check(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, nullptr, 0,
                                         WICBitmapPaletteTypeCustom));
             Bytes pixels(width * height * 4);
             check(converter->CopyPixels(nullptr, width * 4, UINT(pixels.size()), pixels.data()));
-            return codec::encodeTexture(width, height, pixels, format, paletteFormat);
+            return {width, height, codec::TextureFormat::GX_RGBA8, std::move(pixels)};
 #else
             throw std::runtime_error("Choose a PNG image");
 #endif
         }
+
+        Bytes importImage(const fs::path& path, codec::TextureFormat format = codec::TextureFormat::GX_RGBA8,
+                          codec::PaletteFormat paletteFormat = codec::PaletteFormat::GX_TL_RGB5A3) {
+            const auto image = decodeImageFile(path, 1024);
+            return codec::encodeTexture(image.width, image.height, image.rgba, format, paletteFormat);
+        }
+    }
+
+    codec::TextureImage loadImageFile(const fs::path& path, unsigned maxDimension) {
+        return decodeImageFile(path, maxDimension);
     }
 
     DocumentService::DocumentService() {

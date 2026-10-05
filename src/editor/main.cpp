@@ -13,6 +13,8 @@
 #include "preview_controls.h"
 #include "orbit_camera.h"
 #include "preview_view.h"
+#include "framebuffer_preview.h"
+#include "image_export.h"
 #include "document.h"
 #include "file_association.h"
 #include "animation_export.h"
@@ -101,6 +103,38 @@ namespace {
         };
 
         std::map<uint64_t, TabView> tabViews;
+        std::map<uint64_t, breff::FramebufferSettings> framebufferSettings;
+        breff::FramebufferPreview framebuffer;
+        std::string framebufferFilter, framebufferError;
+        std::shared_ptr<const breff::codec::TextureImage> defaultFramebufferImage;
+        std::string defaultFramebufferPath;
+        bool defaultFramebufferLoaded = false;
+
+        breff::FramebufferSettings& currentFramebufferSettings() {
+            const auto id = state.value("documentId", uint64_t(0));
+            auto [entry, inserted] = framebufferSettings.try_emplace(id);
+            if (inserted)
+                entry->second.showBackground = false;
+            if (inserted && id != 0) {
+                if (!defaultFramebufferLoaded) {
+                    defaultFramebufferLoaded = true;
+                    if (const auto* basePath = SDL_GetBasePath()) {
+                        const auto path = std::filesystem::path(basePath) / "image" / "efb.png";
+                        try {
+                            defaultFramebufferImage =
+                                std::make_shared<breff::codec::TextureImage>(breff::loadImageFile(path));
+                            defaultFramebufferPath = path.string();
+                        } catch (const std::exception& exception) {
+                            framebufferError = exception.what();
+                        }
+                    }
+                }
+                entry->second.image = defaultFramebufferImage;
+                entry->second.imagePath = defaultFramebufferPath;
+            }
+            return entry->second;
+        }
+
         bool cutAfterCopy = false, requestPasteDialog = false;
         Json pendingPaste;
         Json pendingImport, importInspection;
@@ -434,6 +468,7 @@ namespace {
                 resetPreview();
                 loadedGeneration = -1;
                 missingTextureStatus.clear();
+                framebufferError.clear();
                 failedRevision = ~uint64_t(0);
             }
             state = response.at("data");
@@ -447,6 +482,9 @@ namespace {
                     return std::none_of(state["documents"].begin(), state["documents"].end(), [&](const auto& file) {
                         return file.at("id") == item.first;
                     });
+                });
+                std::erase_if(framebufferSettings, [&](const auto& item) {
+                    return !tabViews.contains(item.first);
                 });
             }
             if (activeOperation == "open" && previewPrompted.insert(nextDocument).second) {
@@ -546,7 +584,17 @@ namespace {
             if (dialogTarget)
                 return;
             dialogTarget = target;
-            if (target == 6) {
+            if (target == 8) {
+                static constexpr SDL_DialogFileFilter filters[] = {
+#ifdef _WIN32
+                    {"Images", "png;jpg;jpeg;bmp;gif;tif;tiff"}
+#else
+                    {"PNG image", "png"}
+#endif
+                };
+                dialogRequest = {{"documentId", state.at("documentId")}};
+                SDL_ShowOpenFileDialog(fileSelected, this, window, filters, std::size(filters), nullptr, false);
+            } else if (target == 6) {
                 static constexpr SDL_DialogFileFilter filters[] = {{"BREFT image", "*"}};
                 dialogRequest = {{"op", "texture_import"}, {"documentId", state.at("documentId")}};
                 SDL_ShowOpenFileDialog(fileSelected, this, window, filters, std::size(filters), nullptr, false);
@@ -566,6 +614,20 @@ namespace {
 
         void pollDialog() {
             std::lock_guard lock(dialogMutex);
+            if (dialogResult == 8) {
+                const auto id = dialogRequest.at("documentId").get<uint64_t>();
+                if (framebufferSettings.contains(id)) {
+                    try {
+                        auto image = std::make_shared<breff::codec::TextureImage>(
+                            breff::loadImageFile(std::filesystem::u8path(dialogPath)));
+                        framebufferSettings.at(id).image = std::move(image);
+                        framebufferSettings.at(id).imagePath = dialogPath;
+                        framebufferError.clear();
+                    } catch (const std::exception& e) {
+                        framebufferError = e.what();
+                    }
+                }
+            }
             if (dialogResult == 1)
                 breffPath = dialogPath;
             if (dialogResult == 2)
@@ -669,6 +731,7 @@ namespace {
             pixelScale = 1.f;
         if (std::abs(displayScale - lastDisplayScale) < .01f && std::abs(pixelScale - lastPixelScale) < .01f)
             return;
+        const bool replacingFonts = lastDisplayScale > 0.f;
         lastDisplayScale = displayScale;
         lastPixelScale = pixelScale;
         // Windows window coordinates are pixels; macOS may already use points.
@@ -677,6 +740,9 @@ namespace {
         style();
         ImGui::GetStyle().ScaleAllSizes(uiScale);
         auto& io = ImGui::GetIO();
+        // Queued ImGui draws still reference the old font atlas during a DPI change.
+        if (replacingFonts)
+            aurora::gfx::synchronize();
         io.Fonts->Clear();
         ImFontConfig font{};
         font.SizePixels = 16.f * displayScale;
@@ -2009,6 +2075,41 @@ namespace {
         ImGui::Checkbox("Grid", &app.showGrid);
         ImGui::SameLine();
         ImGui::Checkbox("Axes", &app.showAxes);
+        ImGui::BeginDisabled(!app.loaded());
+        {
+            auto& settings = app.currentFramebufferSettings();
+            ImGui::Checkbox("Framebuffer texture", &settings.enabled);
+            ImGui::SameLine();
+            ImGui::Checkbox("Show background", &settings.showBackground);
+            const auto summary = std::to_string(settings.names.size()) + " texture names";
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::BeginCombo("##framebuffer-textures", summary.c_str())) {
+                ImGui::InputTextWithHint("##framebuffer-filter", "Filter texture names", &app.framebufferFilter);
+                auto names = breff::referencedTextureNames(app.state);
+                names.insert(settings.names.begin(), settings.names.end());
+                for (const auto& name : names) {
+                    if (!app.framebufferFilter.empty() && name.find(app.framebufferFilter) == std::string::npos)
+                        continue;
+                    bool selected = settings.names.contains(name);
+                    if (ImGui::Checkbox(name.c_str(), &selected)) {
+                        if (selected)
+                            settings.names.insert(name);
+                        else
+                            settings.names.erase(name);
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            if (ImGui::Button("Choose background image..."))
+                app.choose(8);
+            if (app.loaded() && !settings.image)
+                ImGui::TextDisabled("Choose a background image.");
+            if (settings.enabled && settings.names.empty())
+                ImGui::TextDisabled("Choose at least one texture name for substitution.");
+            if (!app.framebufferError.empty())
+                ImGui::TextWrapped("%s", app.framebufferError.c_str());
+        }
+        ImGui::EndDisabled();
         ImGui::Separator();
         if (ImGui::Checkbox("Use file's random seed", &app.preview.useResourceSeed))
             app.preview.replay();
@@ -2197,6 +2298,25 @@ int main(int argc, char** argv) {
         }
         GXSetCopyClear(GXColor{19, 22, 28, 255}, GX_MAX_Z24);
         drawUI(app, close);
+        const auto& framebuffer = app.currentFramebufferSettings();
+        Mtx44 previewProjection;
+        C_MTXPerspective(previewProjection, 45.f, std::max(1.f, app.previewRect.width) /
+                         std::max(1.f, app.previewRect.height), .001f, 1000000.f);
+        bool captureReady = false;
+        if ((framebuffer.active() || (framebuffer.showBackground && framebuffer.image)) &&
+            app.previewRect.width >= 1 && app.previewRect.height >= 1) {
+            try {
+                if (framebuffer.active()) {
+                    app.framebuffer.capture(framebuffer, unsigned(app.previewRect.width), unsigned(app.previewRect.height));
+                    captureReady = true;
+                }
+                app.framebuffer.background(framebuffer, app.previewRect, previewProjection, app.camera.distance * 1.1f);
+                app.framebufferError.clear();
+            } catch (const std::exception& e) {
+                app.framebufferError = e.what();
+            }
+        } else
+            app.framebuffer.reset();
         drawPreviewGrid(app.previewRect, app.camera, app.showGrid, app.showAxes);
         if (app.loaded() && !app.selected().empty() && app.loadedGeneration == app.state.value("generation", 0)) {
             try {
@@ -2226,7 +2346,10 @@ int main(int argc, char** argv) {
                     nw4r::math::MTX34 view;
                     app.camera.view(view.m);
                     drawInfo.SetViewMtx(view);
-                    app.engine.draw(drawInfo);
+                    if (captureReady)
+                        app.framebuffer.draw(app.engine, app.archive, framebuffer, drawInfo, previewProjection);
+                    else
+                        app.engine.draw(drawInfo);
                 }
             } catch (const std::exception& e) {
                 app.previewError = e.what();
@@ -2252,6 +2375,7 @@ int main(int argc, char** argv) {
         app.flush();
     }
     app.engine.reset();
+    app.framebuffer.reset();
     aurora_shutdown();
     app.images.clear();
     return smokeTest && (!app.previewError.empty() || !app.error.empty()) ? 1 : 0;

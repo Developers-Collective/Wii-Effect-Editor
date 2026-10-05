@@ -62,8 +62,7 @@ void DrawStrategyImpl::InitTev(const EmitterDrawSetting& rSetting, const DrawInf
     if (rSetting.mNumTevs > 4 || rSetting.mACmpComp0 > GX_ALWAYS || rSetting.mACmpComp1 > GX_ALWAYS ||
         rSetting.mACmpOp > GX_AOP_XNOR || rSetting.mZCompareFunc > GX_ALWAYS ||
         rSetting.mBlendMode.mType > GX_BM_SUBTRACT || rSetting.mBlendMode.mSrcFactor > GX_BL_INVDSTALPHA ||
-        rSetting.mBlendMode.mDstFactor > GX_BL_INVDSTALPHA || rSetting.mBlendMode.mOp > GX_LO_SET ||
-        ((rSetting.mFlags & EmitterDrawSetting::FLAG_TEXIND_ENABLE) && rSetting.mIndirectTargetStage >= GX_MAX_TEVSTAGE))
+        rSetting.mBlendMode.mDstFactor > GX_BL_INVDSTALPHA || rSetting.mBlendMode.mOp > GX_LO_SET)
         throw std::runtime_error("Invalid effect graphics settings");
 
     for (unsigned stage = 0; stage < rSetting.mNumTevs; ++stage) {
@@ -138,8 +137,13 @@ void DrawStrategyImpl::InitTev(const EmitterDrawSetting& rSetting, const DrawInf
         GXSetIndTexCoordScale(GX_INDTEXSTAGE0, GX_ITS_1, GX_ITS_1);
         GXSetIndTexMtx(GX_ITM_0, rSetting.mIndTexOffsetMtx, rSetting.mIndTexScaleExp);
 
-        GXSetTevIndirect(static_cast<GXTevStageID>(rSetting.mIndirectTargetStage), GX_INDTEXSTAGE0, GX_ITF_8,
-                         GX_ITB_STU, GX_ITM_0, GX_ITW_OFF, GX_ITW_OFF, FALSE, FALSE, GX_ITBA_OFF);
+        // Runtime resources use the v8+ stage mask. The codec converts the
+        // single stage index stored by v5-v7 when loading older effects.
+        for (unsigned stage = 0; stage < rSetting.mNumTevs; ++stage) {
+            if (rSetting.mIndirectTargetStage & (0x01u << stage))
+                GXSetTevIndirect(static_cast<GXTevStageID>(stage), GX_INDTEXSTAGE0, GX_ITF_8,
+                                 GX_ITB_STU, GX_ITM_0, GX_ITW_OFF, GX_ITW_OFF, FALSE, FALSE, GX_ITBA_OFF);
+        }
     } else {
         GXSetNumIndStages(0);
     }

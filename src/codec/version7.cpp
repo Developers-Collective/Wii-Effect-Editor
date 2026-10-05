@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <algorithm>
+#include <bit>
 
 namespace breff::codec {
     Bytes packV7Emitter(std::span<const uint8_t> bytes) {
@@ -14,6 +15,10 @@ namespace breff::codec {
         w.append(r.slice(draw + 12, 0x60 - 12));
         w.append(r.slice(draw + 0x60, 8));
         w.append(r.slice(draw + 0x70, bytes.size() - draw - 0x70));
+        // Older runtimes accept one stage index instead of a stage mask.
+        // An unused hardware stage represents no active indirect target.
+        const auto mask = unsigned(r.at(draw + 0x07, 1));
+        w.patch(draw + 0x07, mask ? std::countr_zero(mask) : 0x0F, 1);
         w.patch(0x04, 320, 4);
         return std::move(w.bytes);
     }
@@ -36,6 +41,8 @@ namespace breff::codec {
         w.append(r.slice(draw + 0x5c, 8));
         w.append(r.slice(draw + 0x5c, 8));
         w.append(r.slice(draw + 0x64, bytes.size() - (draw + 0x64)));
+        const auto stage = r.at(draw + 0x07, 1);
+        w.patch(draw + 0x07, stage < 8 ? (0x01u << stage) : 0, 1);
         w.patch(0x04, 332, 4);
         return std::move(w.bytes);
     }

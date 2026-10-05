@@ -1,6 +1,9 @@
 # Install only the editor component, excluding dependency SDKs and examples.
 set_target_properties(breff_editor_native PROPERTIES OUTPUT_NAME "EffectEditor")
+set(_framebuffer_image "${CMAKE_CURRENT_SOURCE_DIR}/../image/efb.png")
 if(APPLE)
+    target_sources(breff_editor_native PRIVATE "${_framebuffer_image}")
+    set_source_files_properties("${_framebuffer_image}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources/image)
     target_sources(breff_editor_native PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/editor/icon.icns")
     set_source_files_properties(editor/icon.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(
@@ -56,6 +59,15 @@ else()
         lib
         COMPONENT
         EffectEditor)
+endif()
+if(NOT APPLE)
+    add_custom_target(effect_editor_images ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:breff_editor_native>/image"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_framebuffer_image}"
+            "$<TARGET_FILE_DIR:breff_editor_native>/image/efb.png"
+        VERBATIM)
+    add_dependencies(breff_editor_native effect_editor_images)
+    install(FILES "${_framebuffer_image}" DESTINATION image COMPONENT EffectEditor)
 endif()
 install(
     FILES "${CMAKE_CURRENT_SOURCE_DIR}/../README.md" "${CMAKE_CURRENT_SOURCE_DIR}/../logo.png"

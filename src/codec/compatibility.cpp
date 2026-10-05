@@ -220,6 +220,15 @@ namespace breff::codec {
             textureMapping = remapLegacyTextures(result.value, result.warnings);
             remapLegacyAlpha(result.value["emitter"], result.warnings);
             auto& emitter = result.value["emitter"];
+            if (emitter.at("drawFlags").value("useIndirectTexture", false)) {
+                const auto stages = std::min(emitter.at("tevStages").size(), size_t(4));
+                const auto mask = emitter.value("indirectTargetStages", 0u) & ((0x01u << stages) - 1);
+                emitter["indirectTargetStages"] = mask;
+                if (mask & (mask - 1))
+                    result.warnings.push_back("This effect distorts textures in multiple TEV stages. "
+                                              "Versions before v8 support only one target stage. "
+                                              "The first selected stage is retained.");
+            }
             if (emitter.at("particleType") == "Billboard") {
                 auto& options = emitter["particleOptions"];
                 if (options.value("expression", std::string()) == "NormalNoRoll")
