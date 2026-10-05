@@ -319,6 +319,10 @@ namespace breff::codec {
             auto range = ranges(tables.bytes[1]);
             result["keyFrames"] = Json::array();
             result["randomPool"] = ranges(tables.bytes[2]);
+            // Inactive tracks can omit the key table entirely. No components
+            // are evaluated, but keep the track editable in the JSON model.
+            if (!mask && tables.bytes[0].empty())
+                return result;
             // The original JSON includes empty lists for inactive random-pool components.
             if (!rotate)
                 for (auto& entry : result["randomPool"])

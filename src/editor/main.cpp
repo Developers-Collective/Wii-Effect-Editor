@@ -62,6 +62,21 @@ namespace {
         return "Unknown";
     }
 
+    constexpr std::pair<breff::codec::TextureFilter, const char*> textureFilters[] = {
+        {breff::codec::TextureFilter::GX_NEAR, "Nearest"},
+        {breff::codec::TextureFilter::GX_LINEAR, "Linear"},
+        {breff::codec::TextureFilter::GX_NEAR_MIP_NEAR, "Nearest, nearest mipmap"},
+        {breff::codec::TextureFilter::GX_LIN_MIP_NEAR, "Linear, nearest mipmap"},
+        {breff::codec::TextureFilter::GX_NEAR_MIP_LIN, "Nearest, blended mipmaps"},
+        {breff::codec::TextureFilter::GX_LIN_MIP_LIN, "Linear, blended mipmaps"}};
+
+    const char* textureFilterName(breff::codec::TextureFilter filter) {
+        for (const auto& [value, name] : textureFilters)
+            if (value == filter)
+                return name;
+        return "Unknown";
+    }
+
     struct Application {
         breff::Workspace documents;
         std::future<Json> response;
@@ -93,6 +108,7 @@ namespace {
         int saveVersion = 11;
         breff::codec::TextureFormat textureFormat = breff::codec::TextureFormat::GX_RGB5A3;
         breff::codec::PaletteFormat paletteFormat = breff::codec::PaletteFormat::GX_TL_RGB5A3;
+        breff::codec::TextureSampling textureSampling;
         Json textureImportPreview, textureImportSettings;
         std::string textureImportError;
 
@@ -103,9 +119,13 @@ namespace {
             textureImportError.clear();
             textureFormat = breff::codec::TextureFormat::GX_RGB5A3;
             paletteFormat = breff::codec::PaletteFormat::GX_TL_RGB5A3;
+            textureSampling = {};
             if (replace)
                 if (const auto* item = texture(selectedTexture)) {
                     textureFormat = item->at("format").get<breff::codec::TextureFormat>();
+                    textureSampling.minFilter = item->value("minFilter", breff::codec::TextureFilter::GX_LINEAR);
+                    textureSampling.magFilter = item->value("magFilter", breff::codec::TextureFilter::GX_LINEAR);
+                    textureSampling.lodBias = item->value("lodBias", 0.0f);
                     if (textureFormat == breff::codec::TextureFormat::GX_C4 ||
                         textureFormat == breff::codec::TextureFormat::GX_C8 ||
                         textureFormat == breff::codec::TextureFormat::GX_C14X2)
@@ -133,6 +153,14 @@ namespace {
         std::mutex dialogMutex;
         std::string dialogPath;
         int dialogTarget = 0, dialogResult = 0;
+        int dialogFilter = -1;
+        Json dialogRequest;
+        static constexpr SDL_DialogFileFilter textureExportFilters[] = {
+            {"BREFT image (original format)", "*"}, {"PNG image", "png"},
+#ifdef _WIN32
+            {"JPEG image", "jpg;jpeg"}, {"BMP image", "bmp"}, {"GIF image", "gif"}, {"TIFF image", "tif;tiff"},
+#endif
+        };
         bool requestMissingTextures = false;
         std::set<uint64_t> previewPrompted;
         std::string missingTextureStatus;
@@ -409,6 +437,8 @@ namespace {
                 failedRevision = ~uint64_t(0);
             }
             state = response.at("data");
+            if (activeOperation == "texture_import" && !state.at("textures").empty())
+                selectedTexture = state.at("textures").back().at("name").get<std::string>();
             saveVersion = state.value("version", 11);
             if (nextDocument)
                 tabViews[nextDocument].saveVersion = saveVersion;
@@ -500,12 +530,13 @@ namespace {
             }
         }
 
-        static void fileSelected(void* userdata, const char* const* files, int) {
+        static void fileSelected(void* userdata, const char* const* files, int filter) {
             auto* app = static_cast<Application*>(userdata);
             std::lock_guard lock(app->dialogMutex);
             if (files && files[0]) {
                 app->dialogPath = files[0];
                 app->dialogResult = app->dialogTarget;
+                app->dialogFilter = filter;
             }
             app->dialogTarget = 0;
         }
@@ -515,7 +546,17 @@ namespace {
             if (dialogTarget)
                 return;
             dialogTarget = target;
-            if (target == 4 || target == 5)
+            if (target == 6) {
+                static constexpr SDL_DialogFileFilter filters[] = {{"BREFT image", "*"}};
+                dialogRequest = {{"op", "texture_import"}, {"documentId", state.at("documentId")}};
+                SDL_ShowOpenFileDialog(fileSelected, this, window, filters, std::size(filters), nullptr, false);
+            } else if (target == 7) {
+                dialogRequest = {{"op", "texture_export"}, {"name", selectedTexture},
+                                 {"documentId", state.at("documentId")}};
+                const auto filename = selectedTexture;
+                SDL_ShowSaveFileDialog(fileSelected, this, window, textureExportFilters,
+                                       std::size(textureExportFilters), filename.c_str());
+            } else if (target == 4 || target == 5)
                 SDL_ShowOpenFolderDialog(fileSelected, this, window, nullptr, false);
             else if (save)
                 SDL_ShowSaveFileDialog(fileSelected, this, window, nullptr, 0, nullptr);
@@ -542,6 +583,31 @@ namespace {
             }
             if (dialogResult == 1 || dialogResult == 2)
                 completePair();
+            if (dialogResult == 6 || dialogResult == 7) {
+                auto path = std::filesystem::u8path(dialogPath);
+                if (dialogResult == 7 && dialogFilter < 0) {
+                    auto extension = path.extension().string();
+                    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
+                        return char(std::tolower(c));
+                    });
+                    for (size_t i = 1; i < std::size(textureExportFilters); ++i) {
+                        const std::string patterns = ";" + std::string(textureExportFilters[i].pattern) + ";";
+                        if (!extension.empty() && patterns.find(";" + extension.substr(1) + ";") != std::string::npos)
+                            dialogFilter = int(i);
+                    }
+                }
+                if (dialogResult == 7 && dialogFilter > 0 && size_t(dialogFilter) < std::size(textureExportFilters)) {
+                    std::string extension = textureExportFilters[dialogFilter].pattern;
+                    extension = extension.substr(0, extension.find(';'));
+                    path.replace_extension("." + extension);
+                    dialogRequest["format"] = extension;
+                } else if (dialogResult == 7) {
+                    dialogRequest["format"] = "breft-image";
+                }
+                const auto utf8 = path.u8string();
+                dialogRequest["path"] = std::string(utf8.begin(), utf8.end());
+                applyThen(std::move(dialogRequest));
+            }
             dialogResult = 0;
         }
 
@@ -1280,7 +1346,11 @@ namespace {
                     ImGui::SameLine();
                     if (ImGui::Button("Browse"))
                         app.choose(3);
+#ifdef _WIN32
                     ImGui::TextDisabled("PNG, JPEG, BMP, GIF and TIFF images");
+#else
+                    ImGui::TextDisabled("PNG images");
+#endif
                     using Format = breff::codec::TextureFormat;
                     using Palette = breff::codec::PaletteFormat;
                     if (ImGui::BeginCombo("Format", textureFormatName(app.textureFormat))) {
@@ -1307,11 +1377,29 @@ namespace {
                         }
                     }
 
+                    if (app.state.value("version", 11) >= 11) {
+                        using Filter = breff::codec::TextureFilter;
+                        auto filterCombo = [&](const char* label, Filter& selected, size_t count) {
+                            if (ImGui::BeginCombo(label, textureFilterName(selected))) {
+                                for (size_t i = 0; i < count; ++i)
+                                    if (ImGui::Selectable(textureFilters[i].second, textureFilters[i].first == selected))
+                                        selected = textureFilters[i].first;
+                                ImGui::EndCombo();
+                            }
+                        };
+                        filterCombo("Minification filter", app.textureSampling.minFilter, std::size(textureFilters));
+                        filterCombo("Magnification filter", app.textureSampling.magFilter, 2);
+                        ImGui::SliderFloat("Mipmap LOD bias", &app.textureSampling.lodBias, -4.0f, 3.99f, "%.2f");
+                    }
+
                     const Json settings = {{"op", "texture_import_preview"},
                                            {"path", app.filePath},
                                            {"sourceTexture", replace ? app.selectedTexture : std::string()},
                                            {"format", app.textureFormat},
-                                           {"paletteFormat", app.paletteFormat}};
+                                           {"paletteFormat", app.paletteFormat},
+                                           {"minFilter", app.textureSampling.minFilter},
+                                           {"magFilter", app.textureSampling.magFilter},
+                                           {"lodBias", app.textureSampling.lodBias}};
                     if (settings != app.textureImportSettings && !app.pending()) {
                         app.textureImportSettings = settings;
                         app.textureImportPreview = nullptr;
@@ -1666,6 +1754,14 @@ namespace {
                 app.replacementTexture.clear();
                 ImGui::OpenPopup("Delete texture");
             }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button("Import"))
+                app.choose(6);
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!app.texture(app.selectedTexture));
+            if (ImGui::Button("Export"))
+                app.choose(7, true);
             ImGui::SameLine();
             if (ImGui::Button("Replace")) {
                 app.beginTextureImport(true);
@@ -1814,9 +1910,19 @@ namespace {
                 ImGui::TextDisabled(inBreft ? "Stored in BREFT" : "Not stored in BREFT");
                 if (!item->value("image", "").empty()) {
                     textureImage(app, app.selectedTexture, std::min(300.f * uiScale, ImGui::GetContentRegionAvail().x));
-                    ImGui::Text("%d x %d | %s", item->at("width").get<int>(), item->at("height").get<int>(),
-                                inBreft ? textureFormatName(item->at("format").get<breff::codec::TextureFormat>())
-                                        : "Preview PNG");
+                    const char* format = inBreft
+                                             ? textureFormatName(item->at("format").get<breff::codec::TextureFormat>())
+                                             : "Preview PNG";
+                    if (inBreft && app.state.value("version", 11) >= 11) {
+                        using Filter = breff::codec::TextureFilter;
+                        ImGui::TextWrapped("%d x %d | %s | Minification: %s | Magnification: %s | Mipmap LOD bias: %g",
+                                           item->at("width").get<int>(), item->at("height").get<int>(), format,
+                                           textureFilterName(item->at("minFilter").get<Filter>()),
+                                           textureFilterName(item->at("magFilter").get<Filter>()),
+                                           item->at("lodBias").get<float>());
+                    } else {
+                        ImGui::Text("%d x %d | %s", item->at("width").get<int>(), item->at("height").get<int>(), format);
+                    }
                 }
                 ImGui::Separator();
                 ImGui::TextUnformatted("USED BY");

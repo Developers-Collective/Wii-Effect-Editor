@@ -1,5 +1,8 @@
 #include "archive.h"
+#include "resource_file.h"
+#include <algorithm>
 #include <bit>
+#include <cmath>
 #include <fstream>
 #include <span>
 #include <stdexcept>
@@ -169,6 +172,7 @@ void decodeEffect(Reader r, EffectResource& e) {
     const auto emitterSize = r.u32(4);
     if (emitterSize != 0x14c)
         throw std::runtime_error("Unsupported v11 emitter size");
+    r.check(0x08, emitterSize);
     decodeEmitter({r.data.subspan(8, emitterSize)}, e.resource.emitter);
     size_t particleOffset = 8 + emitterSize, particleSize = r.u32(particleOffset);
     r.check(particleOffset + 4, particleSize);
@@ -207,6 +211,8 @@ void decodeEffect(Reader r, EffectResource& e) {
     auto tracks = [&](auto& result, unsigned count, size_t sizes) {
         for (unsigned i = 0; i < count; ++i) {
             auto size = r.u32(sizes + i * 4);
+            if (size < 0x20)
+                throw std::runtime_error("Animation track is shorter than its header");
             r.check(a, size);
             result.emplace_back(r.data.begin() + a, r.data.begin() + a + size);
             a += size;
@@ -219,10 +225,14 @@ void decodeEffect(Reader r, EffectResource& e) {
 void Archive::load(const std::filesystem::path& breff, const std::filesystem::path& breft, unsigned version) {
     Archive candidate;
     auto textureBytes = readFile(breft), effectBytes = readFile(breff);
-    entries(textureBytes, 0x52454654, [&](const std::string& name, Reader r, size_t offset, size_t) {
+    const auto textureArchive = codec::ResourceFile::decode(textureBytes);
+    if (textureArchive.magic != "REFT")
+        throw std::runtime_error("Expected a texture archive");
+    for (const auto& entry : textureArchive.entries) {
+        const auto& name = entry.name;
         auto t = std::make_unique<TextureResource>();
         t->name = name;
-        Reader b{r.data.subspan(offset)};
+        Reader b{entry.data};
         auto& v = t->resource;
         v.name = t->name.data();
         v.width = b.u16(4);
@@ -235,6 +245,36 @@ void Archive::load(const std::filesystem::path& breff, const std::filesystem::pa
         v.mipmap = b.u8(20);
         v.min_filt = b.u8(21);
         v.mag_filt = b.u8(22);
+        v.hasSamplerSettings = textureArchive.textureHeaderSize == 0x40;
+        v.lod_bias = v.hasSamplerSettings ? b.f32(0x18) : 0.0f;
+        if (v.hasSamplerSettings &&
+            (v.min_filt > GX_LIN_MIP_LIN || v.mag_filt > GX_LINEAR || !std::isfinite(v.lod_bias)))
+            throw std::runtime_error("Invalid texture sampling settings: " + name);
+        if (!v.width || !v.height || v.width > 1024 || v.height > 1024 ||
+            v.mipmap > std::bit_width(unsigned(std::max(v.width, v.height))))
+            throw std::runtime_error("Invalid texture dimensions or mipmap count: " + name);
+        switch (v.format) {
+        case GX_TF_I4:
+        case GX_TF_I8:
+        case GX_TF_IA4:
+        case GX_TF_IA8:
+        case GX_TF_RGB565:
+        case GX_TF_RGB5A3:
+        case GX_TF_RGBA8:
+        case GX_TF_C4:
+        case GX_TF_C8:
+        case GX_TF_C14X2:
+        case GX_TF_CMPR:
+            break;
+        default:
+            throw std::runtime_error("Invalid GX texture format: " + name);
+        }
+        const auto requiredSize = GXGetTexBufferSize(v.width, v.height, v.format, v.mipmap > 1,
+                                                    v.mipmap > 1 ? v.mipmap - 1 : 0);
+        if (requiredSize > v.dataSize || size_t(v.tlutEntries) * 2 > v.tlutSize ||
+            ((v.format == GX_TF_C4 || v.format == GX_TF_C8 || v.format == GX_TF_C14X2) &&
+             (!v.tlutEntries || v.tlutFormat > GX_TL_RGB5A3)))
+            throw std::runtime_error("Truncated texture image, mipmaps or palette: " + name);
         b.check(32, size_t(v.dataSize) + v.tlutSize);
         t->image.assign(b.data.begin() + 32, b.data.begin() + 32 + v.dataSize);
         t->palette.assign(b.data.begin() + 32 + v.dataSize, b.data.begin() + 32 + v.dataSize + v.tlutSize);
@@ -242,7 +282,7 @@ void Archive::load(const std::filesystem::path& breff, const std::filesystem::pa
         v.tlut = t->palette.data();
         if (!candidate.textures.emplace(name, std::move(t)).second)
             throw std::runtime_error("Duplicate texture name");
-    });
+    }
     entries(effectBytes, 0x52454646, [&](const std::string& name, Reader r, size_t offset, size_t size) {
         auto e = std::make_unique<EffectResource>();
         e->resource.name = name;

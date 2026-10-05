@@ -11,7 +11,7 @@ target_include_directories(
     breff_runtime
     PUBLIC platform nw4r/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(breff_runtime PUBLIC aurora::gx)
+target_link_libraries(breff_runtime PUBLIC aurora::gx PRIVATE breff_codec)
 target_compile_definitions(breff_runtime PUBLIC NW4R_LITTLE_ENDIAN _USE_MATH_DEFINES)
 target_sources(
     breff_runtime

@@ -1,4 +1,5 @@
 #include "resource_file.h"
+#include "texture.h"
 #include <algorithm>
 #include <array>
 #include <set>
@@ -186,6 +187,11 @@ namespace breff::codec {
         r.position = table + 0x08;
 
         std::set<std::string> names;
+        struct Record {
+            size_t offset;
+            size_t size;
+        };
+        std::vector<Record> records;
         for (size_t i = 0; i < count; ++i) {
             ResourceEntry entry;
             entry.name = r.name();
@@ -195,15 +201,52 @@ namespace breff::codec {
                 throw std::runtime_error("Resource entry points outside archive");
             if (!names.insert(entry.name).second)
                 throw std::runtime_error("Duplicate resource name: " + entry.name);
-            if (result.magic == "REFT") {
-                // REFT table sizes exclude the texture header. Obtain the complete
-                // image and palette lengths from the record itself.
-                r.check(table + offset, 32);
-                size = 32 + r.at(table + offset + 0x08, 4) + r.at(table + offset + 0x10, 4);
-            }
-            const auto data = r.slice(table + offset, size);
-            entry.data.assign(data.begin(), data.end());
+            records.push_back({table + offset, size});
             result.entries.push_back(std::move(entry));
+        }
+
+        // Physical record boundaries distinguish the two texture header layouts.
+        // The version alone cannot do this: v11 archives exist with both layouts.
+        std::vector<size_t> boundaries{bytes.size()};
+        for (const auto& record : records)
+            boundaries.push_back(record.offset);
+        std::sort(boundaries.begin(), boundaries.end());
+        if (std::adjacent_find(boundaries.begin(), boundaries.end()) != boundaries.end())
+            throw std::runtime_error("Overlapping resource entries");
+
+        for (size_t i = 0; i < records.size(); ++i) {
+            const auto [offset, size] = records[i];
+            const auto end = *std::upper_bound(boundaries.begin(), boundaries.end(), offset);
+            auto& entry = result.entries[i];
+            if (result.magic == "REFT") {
+                r.check(offset, 0x20);
+                const size_t payloadSize = r.at(offset + 0x08, 4) + r.at(offset + 0x10, 4);
+                const size_t extent = end - offset;
+                if (extent < 0x20 || payloadSize > extent - 0x20)
+                    throw std::runtime_error("Truncated texture record: " + entry.name);
+
+                // Alignment after a compact record occupies fewer than 0x20 bytes.
+                // An additional full block belongs to the extended texture header.
+                // Its 0x20 palette pointer is populated by the game at load time.
+                const size_t headerSize = extent - payloadSize >= 0x40 ? 0x40 : 0x20;
+                if (extent - payloadSize - headerSize >= 0x20)
+                    throw std::runtime_error("Invalid texture record size: " + entry.name);
+                result.textureHeaderSize = std::max(result.textureHeaderSize, headerSize);
+
+                const auto header = r.slice(offset, 0x20);
+                const auto payload = r.slice(offset + headerSize, payloadSize);
+                entry.data.assign(header.begin(), header.end());
+                entry.data.insert(entry.data.end(), payload.begin(), payload.end());
+                // Older runtimes overwrite 0x18 with the image pointer and use
+                // fixed sampling settings. Keep their effective values in memory.
+                if (headerSize == 0x20)
+                    setTextureSampling(entry.data, defaultTextureSampling(entry.data));
+            } else {
+                if (size > end - offset)
+                    throw std::runtime_error("Overlapping resource entries");
+                const auto data = r.slice(offset, size);
+                entry.data.assign(data.begin(), data.end());
+            }
         }
 
         return result;
@@ -212,6 +255,8 @@ namespace breff::codec {
     Bytes ResourceFile::encode(bool applyCompression) const {
         if ((magic != "REFF" && magic != "REFT") || version < 5 || version > 11)
             throw std::runtime_error("Invalid destination resource format");
+        if (magic == "REFT" && textureHeaderSize != 0x20 && textureHeaderSize != 0x40)
+            throw std::runtime_error("Invalid texture header size");
 
         Writer w;
         w.append({reinterpret_cast<const uint8_t*>(magic.data()), 4});
@@ -259,7 +304,16 @@ namespace breff::codec {
             if (magic == "REFT")
                 w.align(32);
             w.patch(patches[i], w.bytes.size() - table, 4);
-            w.append(entries[i].data);
+            if (magic == "REFT") {
+                const std::span<const uint8_t> data = entries[i].data;
+                // Runtime pointers are relocated by the game, never serialized.
+                const size_t fieldsSize = textureHeaderSize == 0x40 ? 0x1C : 0x18;
+                w.append(data.first(fieldsSize));
+                w.zeros(textureHeaderSize - fieldsSize);
+                w.append(data.subspan(0x20));
+            } else {
+                w.append(entries[i].data);
+            }
         }
 
         w.patch(0x08, w.bytes.size(), 4);

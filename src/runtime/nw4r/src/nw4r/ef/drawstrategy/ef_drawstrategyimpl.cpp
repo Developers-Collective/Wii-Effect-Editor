@@ -3,6 +3,7 @@
 #include <revolution/GX.h>
 
 #include <cmath>
+#include <stdexcept>
 
 namespace nw4r {
 namespace ef {
@@ -55,6 +56,36 @@ void DrawStrategyImpl::InitTexture(const EmitterDrawSetting& rSetting) {
 void DrawStrategyImpl::InitTev(const EmitterDrawSetting& rSetting, const DrawInfo& rInfo) {
 
     int i;
+
+    // Validate file-controlled GX values before any setters reach Aurora's
+    // fixed-size state arrays or shader compiler's fatal-error branches.
+    if (rSetting.mNumTevs > 4 || rSetting.mACmpComp0 > GX_ALWAYS || rSetting.mACmpComp1 > GX_ALWAYS ||
+        rSetting.mACmpOp > GX_AOP_XNOR || rSetting.mZCompareFunc > GX_ALWAYS ||
+        rSetting.mBlendMode.mType > GX_BM_SUBTRACT || rSetting.mBlendMode.mSrcFactor > GX_BL_INVDSTALPHA ||
+        rSetting.mBlendMode.mDstFactor > GX_BL_INVDSTALPHA || rSetting.mBlendMode.mOp > GX_LO_SET ||
+        ((rSetting.mFlags & EmitterDrawSetting::FLAG_TEXIND_ENABLE) && rSetting.mIndirectTargetStage >= GX_MAX_TEVSTAGE))
+        throw std::runtime_error("Invalid effect graphics settings");
+
+    for (unsigned stage = 0; stage < rSetting.mNumTevs; ++stage) {
+        const auto& color = rSetting.mTevColor[stage];
+        const auto& alpha = rSetting.mTevAlpha[stage];
+        if (color.mA > GX_CC_ZERO || color.mB > GX_CC_ZERO || color.mC > GX_CC_ZERO || color.mD > GX_CC_ZERO ||
+            alpha.mA > GX_CA_ZERO || alpha.mB > GX_CA_ZERO || alpha.mC > GX_CA_ZERO || alpha.mD > GX_CA_ZERO)
+            throw std::runtime_error("Invalid effect TEV input");
+        for (const auto* operation : {&rSetting.mTevColorOp[stage], &rSetting.mTevAlphaOp[stage]}) {
+            if ((operation->mOp > GX_TEV_SUB && operation->mOp < GX_TEV_COMP_R8_GT) ||
+                operation->mOp > GX_TEV_COMP_RGB8_EQ || operation->mBias > GX_TB_SUBHALF ||
+                operation->mScale > GX_CS_DIVIDE_2 || operation->mOutReg >= GX_MAX_TEVREG)
+                throw std::runtime_error("Invalid effect TEV operation");
+        }
+        const auto colorConstant = rSetting.mTevKColorSel[stage];
+        const auto alphaConstant = rSetting.mTevKAlphaSel[stage];
+        if (colorConstant > GX_TEV_KCSEL_K3_A ||
+            (colorConstant > GX_TEV_KCSEL_1_8 && colorConstant < GX_TEV_KCSEL_K0) ||
+            alphaConstant > GX_TEV_KASEL_K3_A ||
+            (alphaConstant > GX_TEV_KASEL_1_8 && alphaConstant < GX_TEV_KASEL_K0_R))
+            throw std::runtime_error("Invalid effect TEV constant selection");
+    }
 
     GXSetClipMode(rSetting.mFlags & EmitterDrawSetting::FLAG_CLIP_DISABLE ? GX_CLIP_DISABLE : GX_CLIP_ENABLE);
 
@@ -626,10 +657,15 @@ bool DrawStrategyImpl::_SetupTexture(Particle* pParticle, const EmitterDrawSetti
             }
 
             f32 maxLod = pTexData->mipmap + -1.0f;
-            f32 lodBias = 0.0f;
+            f32 lodBias = pTexData->lod_bias;
+            const auto minFilter = pTexData->hasSamplerSettings
+                                       ? static_cast<GXTexFilter>(pTexData->min_filt)
+                                       : (pTexData->mipmap > 1 ? GX_LIN_MIP_LIN : GX_LINEAR);
+            const auto magFilter = pTexData->hasSamplerSettings
+                                       ? static_cast<GXTexFilter>(pTexData->mag_filt)
+                                       : GX_LINEAR;
 
-            GXInitTexObjLOD(&texObj, pTexData->mipmap > 1 ? GX_LIN_MIP_LIN : GX_LINEAR, GX_LINEAR, 0.0f, maxLod,
-                            lodBias, FALSE, FALSE, GX_ANISO_1);
+            GXInitTexObjLOD(&texObj, minFilter, magFilter, 0.0f, maxLod, lodBias, FALSE, FALSE, GX_ANISO_1);
 
             GXLoadTexObj(&texObj, static_cast<GXTexMapID>(mTexmapMap[i]));
 

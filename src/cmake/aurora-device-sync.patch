@@ -1,0 +1,15 @@
+diff --git a/lib/webgpu/gpu.cpp b/lib/webgpu/gpu.cpp
+--- a/lib/webgpu/gpu.cpp
++++ b/lib/webgpu/gpu.cpp
+@@ -919,6 +919,11 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+       }
+ #endif
+     }
++#ifdef WEBGPU_DAWN
++    // Resource creation on the UI thread overlaps rendering and pipeline work.
++    // Dawn requires this feature to synchronize device access across threads.
++    requiredFeatures.push_back(wgpu::FeatureName::ImplicitDeviceSynchronization);
++#endif
+     std::string featureList;
+     for (auto featureName : requiredFeatures) {
+       featureList += "\n  ";

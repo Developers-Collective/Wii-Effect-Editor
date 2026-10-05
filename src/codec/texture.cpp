@@ -1,6 +1,7 @@
 #include "texture.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <map>
 #include <queue>
 #include <limits>
@@ -8,6 +9,52 @@
 namespace breff::codec {
     using enum TextureFormat;
     using enum PaletteFormat;
+
+    TextureSampling defaultTextureSampling(std::span<const uint8_t> record) {
+        TextureSampling sampling;
+        if (Reader(record).at(0x14, 1) > 1)
+            sampling.minFilter = TextureFilter::GX_LIN_MIP_LIN;
+        return sampling;
+    }
+
+    TextureSampling textureSampling(std::span<const uint8_t> record) {
+        Reader reader(record);
+        const TextureSampling sampling{TextureFilter(reader.at(0x15, 1)), TextureFilter(reader.at(0x16, 1)),
+                                       std::bit_cast<float>(uint32_t(reader.at(0x18, 4)))};
+        if (sampling.minFilter > TextureFilter::GX_LIN_MIP_LIN || sampling.magFilter > TextureFilter::GX_LINEAR ||
+            !std::isfinite(sampling.lodBias))
+            throw std::runtime_error("Invalid texture sampling settings");
+        return sampling;
+    }
+
+    void setTextureSampling(Bytes& record, const TextureSampling& sampling) {
+        Reader(record).check(0x00, 0x20);
+        if (sampling.minFilter > TextureFilter::GX_LIN_MIP_LIN || sampling.magFilter > TextureFilter::GX_LINEAR ||
+            !std::isfinite(sampling.lodBias))
+            throw std::runtime_error("Invalid texture sampling settings");
+        record[0x15] = uint8_t(sampling.minFilter);
+        record[0x16] = uint8_t(sampling.magFilter);
+        const auto bits = std::bit_cast<uint32_t>(sampling.lodBias);
+        for (unsigned i = 0; i < 4; ++i)
+            record[0x18 + i] = uint8_t(bits >> ((3 - i) * 8));
+    }
+
+    Bytes readTextureImageFile(std::span<const uint8_t> bytes) {
+        Reader reader(bytes);
+        reader.check(0x00, 0x20);
+        const size_t payloadSize = reader.at(0x08, 4) + reader.at(0x10, 4);
+        if (payloadSize > bytes.size())
+            throw std::runtime_error("Truncated BREFT image");
+        const size_t headerSize = bytes.size() - payloadSize;
+        if (headerSize != 0x20 && headerSize != 0x40)
+            throw std::runtime_error("Invalid BREFT image header");
+
+        Bytes record(bytes.begin(), bytes.begin() + 0x20);
+        record.insert(record.end(), bytes.begin() + headerSize, bytes.end());
+        setTextureSampling(record, textureSampling(record));
+        decodeTexture(record);
+        return record;
+    }
 
     namespace {
         using Color = std::array<uint8_t, 4>;
@@ -50,7 +97,16 @@ namespace breff::codec {
         const auto [bw, bh, bs] = blocks.at(format);
         const unsigned nx = (w + bw - 1) / bw;
         Reader data(header.slice(0x20, header.at(0x08, 4)));
-        data.check(0x00, nx * ((h + bh - 1) / bh) * bs);
+        const unsigned levels = std::max(1u, unsigned(header.at(0x14, 1)));
+        if (levels > std::bit_width(std::max(w, h)))
+            throw std::runtime_error("Invalid texture mipmap count");
+        size_t requiredSize = 0;
+        for (unsigned level = 0, width = w, height = h; level < levels; ++level) {
+            requiredSize += size_t((width + bw - 1) / bw) * ((height + bh - 1) / bh) * bs;
+            width = std::max(1u, width / 2);
+            height = std::max(1u, height / 2);
+        }
+        data.check(0x00, requiredSize);
 
         Reader palette(header.slice(0x20 + header.at(0x08, 4), header.at(0x10, 4)));
         const auto paletteFormat = PaletteFormat(header.at(0x0D, 1));
@@ -373,8 +429,8 @@ namespace breff::codec {
         result.patch(0x0E, palette.bytes.size() / 2, 2);
         result.patch(0x10, palette.bytes.size(), 4);
         result.patch(0x14, 1, 1);
-        result.patch(0x15, 1, 1);
-        result.patch(0x16, 1, 1);
+        result.patch(0x15, unsigned(TextureFilter::GX_LINEAR), 1);
+        result.patch(0x16, unsigned(TextureFilter::GX_LINEAR), 1);
 
         for (unsigned by = 0; by < h; by += bh)
             for (unsigned bx = 0; bx < w; bx += bw) {

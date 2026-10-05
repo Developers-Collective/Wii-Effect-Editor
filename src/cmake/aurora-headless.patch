@@ -162,3 +162,21 @@
    const bool blocking = priority == PipelinePriority::Blocking;
    if (!blocking && hash == g_lastPipelineRef) {
      return g_lastPipelineRef;
+@@ -1129,14 +1133,9 @@
+     g_pipelineThread = std::thread(pipeline_worker);
+   }
+
+-  const size_t loadedCount = load_pipeline_cache();
+-  if (!g_pipelineCacheBroken && loadedCount > 0) {
+-    g_gpuCachePrunePending = true;
+-  }
+-
+-  if (!g_pipelineCacheBroken) {
+-    start_pipeline_cache_writer();
+-  }
++  // Editor pipeline configurations originate in resource files. Do not replay
++  // them on startup or persist them before shader compilation has succeeded.
++  // In-memory pipelines and Dawn's compiled shader cache remain available.
+ }
+
+ void shutdown_pipeline_cache() {

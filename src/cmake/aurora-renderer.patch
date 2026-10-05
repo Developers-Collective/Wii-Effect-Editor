@@ -1,0 +1,330 @@
+diff --git a/include/aurora/gfx.hpp b/include/aurora/gfx.hpp
+index aacbfb6..65c492f 100644
+--- a/include/aurora/gfx.hpp
++++ b/include/aurora/gfx.hpp
+@@ -8,7 +8,7 @@
+
+ namespace aurora::gfx {
+
+-inline constexpr size_t InlineDrawPayloadSize = 128;
++inline constexpr size_t InlineDrawPayloadSize = 160;
+ inline constexpr size_t MaxColorAttachments = 8;
+ inline constexpr uint32_t SceneColorAttachmentIndex = 0;
+
+diff --git a/lib/gfx/recording.cpp b/lib/gfx/recording.cpp
+index d04db0f..e64d9ec 100644
+--- a/lib/gfx/recording.cpp
++++ b/lib/gfx/recording.cpp
+@@ -143,6 +143,7 @@ struct PassSnapshotEntry {
+ struct PassSnapshotPool {
+   std::vector<PassSnapshotEntry> entries;
+   size_t used = 0;
++  size_t logicSnapshot = SIZE_MAX;
+ };
+ std::array<PassSnapshotPool, FrameSlotCount> g_passSnapshotPools;
+
+@@ -392,7 +393,7 @@ OffscreenCacheEntry get_offscreen_textures(uint32_t width, uint32_t height) {
+
+ void enqueue_pass(FramePacket& frame, uint32_t passIndex);
+
+-void resume_efb_pass_loading(const RenderPass& prevPass) {
++void resume_efb_pass_loading(const RenderPass& prevPass, size_t commandCapacity = 2048) {
+   RenderPass newPass{
+       .label = pass_label("EFB"),
+       .colorAttachments = prevPass.colorAttachments,
+@@ -411,7 +412,7 @@ void resume_efb_pass_loading(const RenderPass& prevPass) {
+     newPass.colorAttachments[i].loadOp = wgpu::LoadOp::Undefined;
+     newPass.colorAttachments[i].clear = false;
+   }
+-  newPass.commands.reserve(2048);
++  newPass.commands.reserve(commandCapacity);
+   current_render_passes().emplace_back(std::move(newPass));
+   ++g_recorder.currentRenderPass;
+   push_command(CommandType::SetViewport, Command::Data{.setViewport = g_recorder.cachedViewport});
+@@ -535,6 +536,7 @@ void begin_recording(FramePacket& packet, size_t frameSlot) {
+   g_recorder.packet = &packet;
+   g_recorder.frameSlot = frameSlot;
+   g_passSnapshotPools[frameSlot].used = 0;
++  g_passSnapshotPools[frameSlot].logicSnapshot = SIZE_MAX;
+   g_recorder.drawCallCount = 0;
+   g_recorder.mergedDrawCallCount = 0;
+   g_recorder.suspendedEfbPass.reset();
+@@ -1060,7 +1062,46 @@ bool push_encoder_task(EncoderTaskId type, const void* payload, size_t payloadSi
+
+ template <>
+ void push_draw_command(gx::DrawData data) {
+-  push_draw_command(make_draw_command<gx::render>(data));
++  if (!data.logicBlend) {
++    push_draw_command(make_draw_command<gx::render>(data));
++    return;
++  }
++
++  // Logic operations need the destination produced by every preceding primitive.
++  // Splitting prevents overlapping triangles from reading the same stale snapshot.
++  const uint32_t count = data.instancedPrimitive ? data.instanceCount :
++                         (data.indexCount ? data.indexCount : data.vtxCount) / 3;
++  if (data.instancedPrimitive) {
++    data.instanceCount = 1;
++  } else if (data.indexCount) {
++    data.indexCount = 3;
++  } else {
++    data.vtxCount = 3;
++  }
++
++  for (uint32_t i = 0; i < count; ++i) {
++    auto& prevPass = current_render_passes()[g_recorder.currentRenderPass];
++    const auto size = prevPass.colorAttachments[SceneColorAttachmentIndex].size;
++    auto& pool = g_passSnapshotPools[g_recorder.frameSlot];
++    const size_t nextUnused = pool.used;
++    if (pool.logicSnapshot != SIZE_MAX) {
++      pool.used = pool.logicSnapshot;
++    } else {
++      pool.logicSnapshot = pool.used;
++    }
++    auto& snapshot = acquire_pass_snapshot(size.width, size.height, true, false);
++    pool.used = std::max(pool.used, nextUnused);
++    prevPass.snapshotColorDst = snapshot.color.texture;
++    data.logicDestination = gx::logic_bind_group(snapshot.color.view);
++    prevPass.discardable = false;
++    enqueue_pass(current_frame_packet(), g_recorder.currentRenderPass);
++    resume_efb_pass_loading(prevPass, 3);
++
++    data.firstInstance = data.instancedPrimitive ? i : 0;
++    data.firstIndex = !data.instancedPrimitive && data.indexCount ? i * 3 : 0;
++    data.firstVertex = !data.instancedPrimitive && !data.indexCount ? i * 3 : 0;
++    push_draw_command(make_draw_command<gx::render>(data));
++  }
+ }
+
+ #ifdef AURORA_ENABLE_RMLUI
+diff --git a/lib/gx/command_processor.cpp b/lib/gx/command_processor.cpp
+index a84fef2..40f40d4 100644
+--- a/lib/gx/command_processor.cpp
++++ b/lib/gx/command_processor.cpp
+@@ -466,6 +466,9 @@ static void push_gx_draw(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, gfx::Rang
+       .instanceCount = instanceCount,
+       .bindGroups = cache.bindGroups,
+       .dstAlpha = state.dstAlpha,
++      .logicBlend = state.blendMode == GX_BM_LOGIC && state.blendOp != GX_LO_CLEAR &&
++                    state.blendOp != GX_LO_COPY && state.blendOp != GX_LO_NOOP,
++      .instancedPrimitive = prim == GX_LINES || prim == GX_LINESTRIP || prim == GX_POINTS,
+   });
+ }
+
+@@ -498,7 +501,8 @@ static void draw_prim(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, ByteReader&
+     UNLIKELY { handle_draw_overrun(totalVtxBytes, reader); }
+
+   const bool cleanState = g_gxState.dirty == 0 && fmt == sDrawCache.lastDrawFmt && sDrawCache.lineMode == 0 &&
+-                          prim != GX_LINES && prim != GX_LINESTRIP && prim != GX_POINTS;
++                          prim != GX_LINES && prim != GX_LINESTRIP && prim != GX_POINTS &&
++                          g_gxState.blendMode != GX_BM_LOGIC;
+   auto* lastDraw = cleanState ? gfx::get_last_draw_command<DrawData>() : nullptr;
+   const bool canMerge = lastDraw != nullptr && lastDraw->instanceCount == 1;
+
+diff --git a/lib/gx/gx.cpp b/lib/gx/gx.cpp
+index b12b327..4b17dc4 100644
+--- a/lib/gx/gx.cpp
++++ b/lib/gx/gx.cpp
+@@ -41,6 +41,8 @@ absl::flat_hash_map<u32, std::pair<wgpu::BindGroupLayout, wgpu::BindGroupLayout>
+ wgpu::BindGroupLayout sTextureBindGroupLayout;
+ wgpu::BindGroupLayout sSamplerBindGroupLayout;
+ wgpu::PipelineLayout sPipelineLayout;
++wgpu::PipelineLayout sLogicPipelineLayout;
++wgpu::BindGroupLayout sLogicBindGroupLayout;
+
+ std::atomic<int> sPendingViewportPolicy{-1};
+
+@@ -136,7 +138,14 @@ wgpu::BlendState to_blend_state(GXBlendMode mode, GXBlendFactor srcFac, GXBlendF
+     break;
+   case GX_BM_LOGIC:
+     switch (op) {
+-      DEFAULT_FATAL("unsupported logic op {}", underlying(op));
++    default:
++      // The fragment shader has already combined source and destination bits.
++      colorBlendComponent = {
++          .operation = wgpu::BlendOperation::Add,
++          .srcFactor = wgpu::BlendFactor::One,
++          .dstFactor = wgpu::BlendFactor::Zero,
++      };
++      break;
+     case GX_LO_CLEAR:
+       colorBlendComponent = {
+           .operation = wgpu::BlendOperation::Add,
+@@ -342,7 +351,7 @@ wgpu::RenderPipeline build_pipeline(const PipelineConfig& config, ArrayRef<wgpu:
+   };
+   const wgpu::RenderPipelineDescriptor descriptor{
+       .label = label,
+-      .layout = sPipelineLayout,
++      .layout = config.shaderConfig.logicOp != GX_LO_COPY ? sLogicPipelineLayout : sPipelineLayout,
+       .vertex =
+           {
+               .module = shader,
+@@ -366,6 +375,10 @@ void populate_pipeline_config(PipelineConfig& config, GXPrimitive primitive, GXV
+
+   const auto& vtxFmt = g_gxState.vtxFmts[fmt];
+   config.shaderConfig = {};
++  if (g_gxState.blendMode == GX_BM_LOGIC && g_gxState.blendOp != GX_LO_CLEAR &&
++      g_gxState.blendOp != GX_LO_COPY && g_gxState.blendOp != GX_LO_NOOP) {
++    config.shaderConfig.logicOp = static_cast<u8>(g_gxState.blendOp);
++  }
+   config.shaderConfig.fogType = g_gxState.fog.type;
+   config.shaderConfig.fogRangeEnabled = g_gxState.fog.rangeEnabled;
+   u8 vtxOffset = 0;
+@@ -502,6 +515,20 @@ GXBindGroups build_bind_groups(const ShaderInfo& info) noexcept {
+   };
+ }
+
++gfx::BindGroupRef logic_bind_group(wgpu::TextureView view) {
++  const WGPUBindGroupEntry entry{
++      .binding = 0,
++      .textureView = view.Get(),
++  };
++  const WGPUBindGroupDescriptor descriptor{
++      .label = "GX Logic Destination",
++      .layout = sLogicBindGroupLayout.Get(),
++      .entryCount = 1,
++      .entries = &entry,
++  };
++  return gfx::bind_group_ref(descriptor);
++}
++
+ void initialize() noexcept {
+   {
+     std::array<wgpu::BindGroupLayoutEntry, MaxTextures * 2> textureEntries;
+@@ -576,10 +603,42 @@ void initialize() noexcept {
+     };
+     sPipelineLayout = g_device.CreatePipelineLayout(&desc);
+   }
++  {
++    const wgpu::BindGroupLayoutEntry entry{
++        .binding = 0,
++        .visibility = wgpu::ShaderStage::Fragment,
++        .texture = {
++            .sampleType = wgpu::TextureSampleType::Float,
++            .viewDimension = wgpu::TextureViewDimension::e2D,
++        },
++    };
++    const wgpu::BindGroupLayoutDescriptor groupDesc{
++        .label = "GX Logic Destination Layout",
++        .entryCount = 1,
++        .entries = &entry,
++    };
++    sLogicBindGroupLayout = g_device.CreateBindGroupLayout(&groupDesc);
++    const std::array layouts{
++        gfx::detail::resources().staticBindGroupLayout,
++        gfx::detail::resources().uniformBindGroupLayout,
++        sTextureBindGroupLayout,
++        sLogicBindGroupLayout,
++    };
++    const wgpu::PipelineLayoutDescriptor desc{
++        .label = "GX Logic Pipeline Layout",
++        .bindGroupLayoutCount = layouts.size(),
++        .bindGroupLayouts = layouts.data(),
++        .immediateSize = sizeof(DrawImmediateData),
++    };
++    sLogicPipelineLayout = g_device.CreatePipelineLayout(&desc);
++  }
+ }
+
+ void shutdown() noexcept {
+   // TODO we should probably store this all in g_state.gx instead
++  sLogicPipelineLayout = {};
++  sLogicBindGroupLayout = {};
++  sPipelineLayout = {};
+   sSamplerBindGroupLayout = {};
+   sTextureBindGroupLayout = {};
+   {
+diff --git a/lib/gx/gx.hpp b/lib/gx/gx.hpp
+index a97b987..476cd6e 100644
+--- a/lib/gx/gx.hpp
++++ b/lib/gx/gx.hpp
+@@ -492,7 +492,7 @@ struct ShaderConfig {
+   u8 lineMode : 2 = 0; // 1 = GX_LINES, 2 = GX_LINESTRIP, 3 = GX_POINTS
+   u8 fogRangeEnabled : 1 = false;
+   u8 pad1 : 5 = 0;
+-  u8 pad2 = 0;
++  u8 logicOp = GX_LO_COPY;
+   std::array<AttrConfig, MaxVtxAttr> attrs;
+   std::array<TevSwap, MaxTevSwap> tevSwapTable;
+   std::array<TevStage, MaxTevStages> tevStages;
+@@ -509,6 +509,8 @@ static_assert(std::has_unique_object_representations_v<ShaderConfig>);
+
+ struct PipelineConfig;
+
++gfx::BindGroupRef logic_bind_group(wgpu::TextureView view);
++
+ struct GXBindGroups {
+   gfx::BindGroupRef textureBindGroup;
+ };
+diff --git a/lib/gx/pipeline.cpp b/lib/gx/pipeline.cpp
+index 0c3631c..1832f57 100644
+--- a/lib/gx/pipeline.cpp
++++ b/lib/gx/pipeline.cpp
+@@ -33,15 +33,18 @@ void render(const DrawData& data, const wgpu::RenderPassEncoder& pass) {
+   if (data.bindGroups.textureBindGroup) {
+     pass.SetBindGroup(2, gfx::find_bind_group(data.bindGroups.textureBindGroup));
+   }
++  if (data.logicDestination) {
++    pass.SetBindGroup(3, gfx::find_bind_group(data.logicDestination));
++  }
+   pass.SetIndexBuffer(resources.indexBuffer, wgpu::IndexFormat::Uint16, data.idxRange.offset, data.idxRange.size);
+   if (data.dstAlpha != UINT32_MAX) {
+     const wgpu::Color color{0.f, 0.f, 0.f, data.dstAlpha / 255.f};
+     pass.SetBlendConstant(&color);
+   }
+   if (data.indexCount == 0) {
+-    pass.Draw(data.vtxCount, data.instanceCount);
++    pass.Draw(data.vtxCount, data.instanceCount, data.firstVertex, data.firstInstance);
+   } else {
+-    pass.DrawIndexed(data.indexCount, data.instanceCount);
++    pass.DrawIndexed(data.indexCount, data.instanceCount, data.firstIndex, 0, data.firstInstance);
+   }
+ }
+
+diff --git a/lib/gx/pipeline.hpp b/lib/gx/pipeline.hpp
+index 1abcbd5..52eef50 100644
+--- a/lib/gx/pipeline.hpp
++++ b/lib/gx/pipeline.hpp
+@@ -15,9 +15,15 @@ struct DrawData {
+   uint32_t instanceCount;
+   GXBindGroups bindGroups;
+   uint32_t dstAlpha;
++  gfx::BindGroupRef logicDestination;
++  uint32_t firstVertex = 0;
++  uint32_t firstIndex = 0;
++  uint32_t firstInstance = 0;
++  bool logicBlend = false;
++  bool instancedPrimitive = false;
+ };
+
+-constexpr uint32_t GXPipelineConfigVersion = 13;
++constexpr uint32_t GXPipelineConfigVersion = 14;
+ struct PipelineConfig {
+   uint32_t version = GXPipelineConfigVersion;
+   uint32_t msaaSamples = 1;
+diff --git a/lib/gx/shader.cpp b/lib/gx/shader.cpp
+index 92f358b..03cfddd 100644
+--- a/lib/gx/shader.cpp
++++ b/lib/gx/shader.cpp
+@@ -1628,6 +1628,21 @@ std::string build_shader_source(const ShaderConfig& config) noexcept {
+     fragmentFn += "\n    prev = vec4f(in.nrm, prev.a);";
+   }
+
++  if (config.logicOp != GX_LO_COPY) {
++    texBindings += "\n@group(3) @binding(0) var logicDestination: texture_2d<f32>;";
++    constexpr std::array expressions{
++        "vec4u(0u)", "src & dst", "src & ~dst", "src",
++        "~src & dst", "dst", "src ^ dst", "src | dst",
++        "~(src | dst)", "~(src ^ dst)", "~dst", "src | ~dst",
++        "~src", "~src | dst", "~(src & dst)", "vec4u(0xFFu)",
++    };
++    fragmentFn +=
++        "\n    let src = vec4u(round(clamp(prev, vec4f(0.0), vec4f(1.0)) * 255.0));"
++        "\n    let dst = vec4u(round(textureLoad(logicDestination, vec2i(in.pos.xy), 0) * 255.0));";
++    fragmentFn += fmt::format("\n    prev = vec4f(({}) & vec4u(0xFFu)) / 255.0;",
++                              expressions[config.logicOp & 0x0F]);
++  }
++
+   const auto shaderSource = fmt::format(R"""(
+ fn bswap32(v: u32, le: bool) -> u32 {{
+   if (le) {{

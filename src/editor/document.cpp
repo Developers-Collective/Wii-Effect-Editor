@@ -1,4 +1,5 @@
 #include "document.h"
+#include "image_export.h"
 #include "../codec/effect.h"
 #include "../codec/compatibility.h"
 #include "../codec/animation.h"
@@ -265,7 +266,11 @@ namespace breff {
 
     codec::ResourceFile DocumentService::textureArchive(const State& state) const {
         auto archive = state.textures;
-        archive.version = uint16_t(state.version == originalVersion ? originalTextureVersion : state.version);
+        archive.version = uint16_t(state.version);
+        archive.textureHeaderSize = state.version >= 11 ? 0x40 : 0x20;
+        if (state.version < 11)
+            for (auto& entry : archive.entries)
+                codec::setTextureSampling(entry.data, codec::defaultTextureSampling(entry.data));
         return archive;
     }
 
@@ -277,7 +282,7 @@ namespace breff {
                 entry.data = codec::encodeEffect(codec::decodeEffect(entry.data, effects.version, true), 11);
             effects.version = 11;
         }
-        auto textures = candidate.textures;
+        auto textures = textureArchive(candidate);
         textures.version = 11;
         Json metadata = Json::array();
         Json dependencies = Json::object();
@@ -328,6 +333,19 @@ namespace breff {
                     dependencies[name].push_back({{"effect", it.key()}, {"field", path + "/" + key}});
                 }
             });
+        if (candidate.version < 11)
+            for (const auto& entry : candidate.textures.entries)
+                if (codec::textureSampling(entry.data) != codec::defaultTextureSampling(entry.data))
+                    for (const auto& reference : dependencies.value(entry.name, Json::array())) {
+                        const auto name = reference.at("effect").get<std::string>();
+                        const auto message = "Texture " + entry.name + " uses v11 sampling settings. v" +
+                                             std::to_string(candidate.version) +
+                                             " uses fixed filtering and zero mipmap LOD bias.";
+                        if (!warnings.contains(name))
+                            warnings[name] = Json::array();
+                        if (std::find(warnings[name].begin(), warnings[name].end(), Json(message)) == warnings[name].end())
+                            warnings[name].push_back(message);
+                    }
         auto imageMetadata = [&](const Bytes& bytes) {
             auto cached = imageCache.find(bytes);
             if (cached == imageCache.end()) {
@@ -339,6 +357,9 @@ namespace breff {
                                                   {"height", pixels.height},
                                                   {"format", pixels.format},
                                                   {"paletteFormat", codec::Reader(bytes).at(0x0D, 1)},
+                                                  {"minFilter", codec::textureSampling(bytes).minFilter},
+                                                  {"magFilter", codec::textureSampling(bytes).magFilter},
+                                                  {"lodBias", codec::textureSampling(bytes).lodBias},
                                                   {"image", utf8(path)},
                                                   {"error", ""}})
                              .first;
@@ -466,7 +487,7 @@ namespace breff {
             effectPath = path;
             texturePath = tex;
             savedEffects = effectArchive(document).encode(false);
-            savedTextures = document.textures.encode(false);
+            savedTextures = textureArchive(document).encode(false);
             savedEffectCompression = document.effects.compressed;
             savedTextureCompression = document.textures.compressed;
             contentDirty = false;
@@ -476,6 +497,24 @@ namespace breff {
         }
         if (!document.loaded)
             throw std::runtime_error("Open a BREFF/BREFT pair first");
+        if (op == "texture_export") {
+            const auto name = request.at("name").get<std::string>();
+            const auto textures = textureArchive(document);
+            const auto entry = std::find_if(textures.entries.begin(), textures.entries.end(),
+                                            [&](const auto& item) { return item.name == name; });
+            if (entry == textures.entries.end())
+                throw std::runtime_error("Unknown texture");
+            const auto path = fs::u8path(request.at("path").get<std::string>());
+            auto extension = path.extension().string();
+            std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
+                return char(std::tolower(c));
+            });
+            const auto bytes = request.value("format", std::string()) == "breft-image" || extension == ".bt-img"
+                                   ? entry->data
+                                   : encodeImageFile(codec::decodeTexture(entry->data), extension);
+            atomicWrite(path, bytes);
+            return state();
+        }
         if (op == "texture_import_preview") {
             textureImportBytes.clear();
             ++textureImportToken;
@@ -503,6 +542,19 @@ namespace breff {
                     bytes = entry->data;
                 else
                     bytes = codec::encodeTexture(source.width, source.height, source.rgba, format, paletteFormat);
+            }
+            if (document.version >= 11) {
+                codec::TextureSampling sampling;
+                sampling.minFilter = request.value("minFilter", codec::TextureFilter::GX_LINEAR);
+                sampling.magFilter = request.value("magFilter", codec::TextureFilter::GX_LINEAR);
+                sampling.lodBias = request.value("lodBias", 0.0f);
+                codec::setTextureSampling(bytes, sampling);
+            } else {
+                const auto sourceName = request.value("sourceTexture", std::string());
+                const auto source = std::find_if(document.textures.entries.begin(), document.textures.entries.end(),
+                                               [&](const auto& entry) { return entry.name == sourceName; });
+                if (source != document.textures.entries.end())
+                    codec::setTextureSampling(bytes, codec::textureSampling(source->data));
             }
             const auto pixels = codec::decodeTexture(bytes);
             const auto path = directory / "texture-import.rgba";
@@ -785,15 +837,21 @@ namespace breff {
             candidate.version = version;
             auto effects = effectArchive(candidate).encode(), textures = textureArchive(candidate).encode();
             const bool converted = version != document.version;
-            if (converted)
-                publish(candidate);
+            const bool discardSampling = version < 11 &&
+                std::any_of(candidate.textures.entries.begin(), candidate.textures.entries.end(), [](const auto& entry) {
+                    return codec::textureSampling(entry.data) != codec::defaultTextureSampling(entry.data);
+                });
             writePair(path, effects, tex, textures);
+            if (version < 11)
+                candidate.textures = textureArchive(candidate);
+            if (converted || discardSampling)
+                publish(candidate);
             if (converted) {
                 undo.push_back(document);
                 redo.clear();
             }
-            // Keep the full session model and its original binary backing. Saving a
-            // narrowed representation must not destroy values recoverable by switching back.
+            // Effect values keep their existing session behavior. Texture sampling
+            // overrides survive version switches until a lower version is saved.
             document = std::move(candidate);
             effectPath = path;
             texturePath = tex;
@@ -1047,7 +1105,7 @@ namespace breff {
             candidate.errors.erase(document.selected);
             candidate.selected = candidate.effects.entries.empty() ? "" : candidate.effects.entries.front().name;
         } else if (op.starts_with("texture_")) {
-            const std::string name = request.at("name");
+            const std::string name = request.value("name", std::string());
             auto& entries = candidate.textures.entries;
             auto entry = std::find_if(entries.begin(), entries.end(), [&](const auto& e) {
                 return e.name == name;
@@ -1055,7 +1113,17 @@ namespace breff {
             if ((op == "texture_add" || op == "texture_replace") &&
                 (textureImportBytes.empty() || request.at("token").get<uint64_t>() != textureImportToken))
                 throw std::runtime_error("Convert the image before importing it");
-            if (op == "texture_add") {
+            if (op == "texture_import") {
+                const auto path = fs::u8path(request.at("path").get<std::string>());
+                auto imported = codec::readTextureImageFile(readFile(path));
+                auto importedName = utf8(path.extension() == ".bt-img" ? path.stem() : path.filename());
+                const auto base = importedName;
+                unsigned suffix = 2;
+                while (std::any_of(entries.begin(), entries.end(), [&](const auto& item) { return item.name == importedName; }))
+                    importedName = base + "_" + std::to_string(suffix++);
+                validateName(importedName, candidate.textures);
+                entries.push_back({importedName, std::move(imported)});
+            } else if (op == "texture_add") {
                 validateName(name, candidate.textures);
                 entries.push_back({name, textureImportBytes});
             } else {
@@ -1209,9 +1277,10 @@ namespace breff {
                                  fs::u8path(tab.state.at("textureSourcePath").template get<std::string>())) == texture))
                             throw std::runtime_error("That file is already open in another tab");
                 }
-                if ((op == "paste" || op == "import" || op == "import_replace" || op == "import_scan") &&
+                if ((op == "paste" || op == "import" || op == "import_replace" || op == "import_scan" ||
+                     op == "texture_import" || op == "texture_export") &&
                     request.value("documentId", selected) != selected)
-                    throw std::runtime_error("The destination file changed; paste again in the intended tab");
+                    throw std::runtime_error("The active file changed. Repeat the action in the intended tab.");
                 auto response = current->document->handle(request);
                 if (!response.value("ok", false))
                     return response;

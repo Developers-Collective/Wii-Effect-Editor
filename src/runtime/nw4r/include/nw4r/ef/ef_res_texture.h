@@ -7,7 +7,7 @@
 namespace nw4r {
 namespace ef {
 
-// TODO(kiwi) Unsure which field is missing
+// Host representation. Archive loading handles both disk header layouts.
 struct TextureData {
     char* name;      // at 0x0
     u16 width;       // at 0x4
@@ -21,9 +21,10 @@ struct TextureData {
     u8 min_filt;     // at 0x15
     u8 mag_filt;     // at 0x16
     u8 reserved[1];  // at 0x17
-    // f32 lod_bias;    // at 0x18
-    u8* texture; // at 0x18
-    u8* tlut;    // at 0x1C
+    f32 lod_bias = 0.0f;
+    bool hasSamplerSettings = false;
+    u8* texture;
+    u8* tlut;
 };
 
 class ResTexture {

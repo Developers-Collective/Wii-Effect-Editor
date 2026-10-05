@@ -17,6 +17,28 @@ namespace breff::codec {
     };
     enum class PaletteFormat : unsigned { GX_TL_IA8 = 0, GX_TL_RGB565 = 1, GX_TL_RGB5A3 = 2 };
 
+    enum class TextureFilter : unsigned {
+        GX_NEAR = 0,
+        GX_LINEAR = 1,
+        GX_NEAR_MIP_NEAR = 2,
+        GX_LIN_MIP_NEAR = 3,
+        GX_NEAR_MIP_LIN = 4,
+        GX_LIN_MIP_LIN = 5
+    };
+
+    struct TextureSampling {
+        TextureFilter minFilter = TextureFilter::GX_LINEAR;
+        TextureFilter magFilter = TextureFilter::GX_LINEAR;
+        float lodBias = 0.0f;
+
+        bool operator==(const TextureSampling&) const = default;
+    };
+
+    TextureSampling defaultTextureSampling(std::span<const uint8_t> record);
+    TextureSampling textureSampling(std::span<const uint8_t> record);
+    void setTextureSampling(Bytes& record, const TextureSampling& sampling);
+    Bytes readTextureImageFile(std::span<const uint8_t> bytes);
+
     struct TextureImage {
         unsigned width, height;
         TextureFormat format;
