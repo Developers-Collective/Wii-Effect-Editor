@@ -5,10 +5,8 @@ file(MAKE_DIRECTORY "${patch_directory}")
 
 foreach(patch aurora-headless.patch aurora-renderer.patch aurora-device-sync.patch)
     # Windows checkouts may use CRLF. Git requires LF for these patch files.
-    file(READ "${CMAKE_CURRENT_LIST_DIR}/${patch}" patch_content)
-    string(REPLACE "\r\n" "\n" patch_content "${patch_content}")
     set(patch_path "${patch_directory}/${patch}")
-    file(WRITE "${patch_path}" "${patch_content}")
+    configure_file("${CMAKE_CURRENT_LIST_DIR}/${patch}" "${patch_path}" @ONLY NEWLINE_STYLE UNIX)
     execute_process(COMMAND "${GIT_EXECUTABLE}" apply --check --ignore-whitespace "${patch_path}"
         RESULT_VARIABLE applicable OUTPUT_QUIET ERROR_VARIABLE patch_error)
     if(applicable EQUAL 0)
