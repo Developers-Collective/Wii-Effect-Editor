@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 
 namespace breff {
     class DocumentService {
@@ -29,12 +30,14 @@ namespace breff {
         unsigned originalVersion = 11, originalTextureVersion = 11;
         Json textureMetadata = Json::array(), externalTextureMetadata = Json::array();
         Json missingTextures = Json::array();
+        Json unusedTextures = Json::array();
         Json conversionWarnings = Json::object();
         std::map<std::string, codec::Bytes> previewTextures;
         std::map<std::string, std::string> previewTexturePaths;
         std::map<codec::Bytes, Json> imageCache;
         codec::ResourceFile effectArchive(const State& state, unsigned version = 0) const;
         codec::ResourceFile textureArchive(const State& state) const;
+        Json findUnusedTextures(const State& state, const std::set<std::string>& excluded = {}) const;
         void publish(const State& state, const std::map<std::string, codec::Bytes>* overrides = nullptr);
         Json state() const;
         Json dispatch(const Json& request);

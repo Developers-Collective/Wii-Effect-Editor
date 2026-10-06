@@ -16,6 +16,7 @@
 #include "framebuffer_preview.h"
 #include "image_export.h"
 #include "document.h"
+#include "resource_selection.h"
 #include "file_association.h"
 #include "animation_export.h"
 #include "../codec/form.h"
@@ -100,7 +101,59 @@ namespace {
             std::string search, selectedTexture;
             bool textureMode = false;
             int saveVersion = 11;
+            breff::ResourceSelection effects, textures;
         };
+
+        breff::ResourceSelection effectSelection, textureSelection;
+        Json pendingDelete;
+        std::map<std::string, bool> cleanupTextures;
+        std::set<uint64_t> cleanupPrompted;
+        bool requestDeleteDialog = false;
+
+        breff::ResourceSelection& selection() {
+            return textureMode ? textureSelection : effectSelection;
+        }
+
+        bool multipleSelected() {
+            return selection().names.size() > 1;
+        }
+
+        bool canDelete() {
+            if (!loaded() || pending() || disconnected || selection().names.empty())
+                return false;
+            return !textureMode || std::any_of(textureSelection.names.begin(), textureSelection.names.end(),
+                                              [&](const auto& name) { return texture(name) != nullptr; });
+        }
+
+        void beginDelete() {
+            if (!canDelete())
+                return;
+            Json names = Json::array();
+            for (const auto& name : selection().names)
+                if (!textureMode || texture(name))
+                    names.push_back(name);
+            pendingDelete = {{"op", textureMode ? "texture_delete" : "effect_delete"},
+                             {"names", names}, {"documentId", state.at("documentId")}};
+            cleanupTextures.clear();
+            replacementTexture.clear();
+            if (textureMode)
+                requestDeleteDialog = true;
+            else {
+                auto request = pendingDelete;
+                request["op"] = "effect_delete_inspect";
+                applyThen(std::move(request));
+            }
+        }
+
+        void selectResource(const std::string& name, const std::vector<std::string>& visible,
+                            bool control, bool shift) {
+            auto& selectedItems = selection();
+            selectedItems.select(name, visible, control, shift);
+            if (textureMode)
+                selectedTexture = selectedItems.preview;
+            else if (selectedItems.preview != selected())
+                applyThen({{"op", "select"}, {"name", selectedItems.preview}});
+        }
 
         std::map<uint64_t, TabView> tabViews;
         std::map<uint64_t, breff::FramebufferSettings> framebufferSettings;
@@ -454,7 +507,8 @@ namespace {
             const auto nextDocument = response.at("data").value("documentId", uint64_t(0));
             if (previousDocument != nextDocument) {
                 if (previousDocument != 0)
-                    tabViews[previousDocument] = {search, selectedTexture, textureMode, saveVersion};
+                    tabViews[previousDocument] = {search, selectedTexture, textureMode, saveVersion,
+                                                 effectSelection, textureSelection};
                 if (!tabViews.contains(nextDocument)) {
                     tabViews[nextDocument].saveVersion = response.at("data").value("originalVersion", 11);
                 }
@@ -463,6 +517,8 @@ namespace {
                 selectedTexture = view.selectedTexture;
                 textureMode = view.textureMode;
                 saveVersion = view.saveVersion;
+                effectSelection = view.effects;
+                textureSelection = view.textures;
                 selectResourceTab = textureMode ? 1 : 0;
                 selectDocumentTab = true;
                 resetPreview();
@@ -528,7 +584,20 @@ namespace {
                 const auto& textures = state["textures"].empty() ? state["externalTextures"] : state["textures"];
                 selectedTexture = textures.empty() ? "" : textures[0].value("name", "");
             }
+            effectSelection.reconcile(state.value("names", std::vector<std::string>()), selected());
+            std::vector<std::string> textureNames;
+            for (const auto* key : {"textures", "externalTextures"})
+                for (const auto& item : state.value(key, Json::array()))
+                    textureNames.push_back(item.at("name").get<std::string>());
+            textureSelection.reconcile(textureNames, selectedTexture);
             error.clear();
+            if (activeOperation == "effect_delete_inspect") {
+                cleanupTextures.clear();
+                for (const auto& name : state.at("deleteInspection").at("unusedTextures"))
+                    cleanupTextures[name.get<std::string>()] = true;
+                state.erase("deleteInspection");
+                requestDeleteDialog = true;
+            }
             if (activeOperation == "import_inspect" || activeOperation == "import_scan") {
                 importInspection = state.at("importInspection");
                 state.erase("importInspection");
@@ -548,7 +617,7 @@ namespace {
                 if (!SDL_SetClipboardText(text.c_str()))
                     error = SDL_GetError();
                 else if (cutAfterCopy)
-                    enqueue({{"op", "effect_delete"}});
+                    beginDelete();
                 cutAfterCopy = false;
             }
             if (closeRequested && activeOperation == "save_all")
@@ -1351,7 +1420,7 @@ namespace {
             ImGui::EndPopup();
         }
 
-        if (app.requestMissingTextures) {
+        if (app.requestMissingTextures && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId)) {
             ImGui::OpenPopup("Preview textures");
             app.requestMissingTextures = false;
         }
@@ -1505,41 +1574,88 @@ namespace {
                 ImGui::EndPopup();
             }
         }
-        for (const char* title : {"Delete effect", "Delete texture"}) {
-            if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-                bool texture = std::string(title) == "Delete texture";
-                ImGui::Text("Delete %s?", (texture ? app.selectedTexture : app.selected()).c_str());
-                if (texture) {
-                    ImGui::TextUnformatted("References will use the selected replacement.");
-                    if (ImGui::BeginCombo("Replacement", app.replacementTexture.empty()
-                                                             ? "None (clear references)"
-                                                             : app.replacementTexture.c_str())) {
-                        if (ImGui::Selectable("None (clear references)", app.replacementTexture.empty()))
-                            app.replacementTexture.clear();
-                        for (const auto& item : app.state["textures"]) {
-                            auto name = item.at("name").get<std::string>();
-                            if (name != app.selectedTexture &&
-                                ImGui::Selectable(name.c_str(), name == app.replacementTexture))
-                                app.replacementTexture = name;
-                        }
-                        ImGui::EndCombo();
-                    }
-                } else
-                    ImGui::TextUnformatted("Child effects referencing this name will no longer find it.");
-                if (ImGui::Button("Delete")) {
-                    if (texture)
-                        app.applyThen({{"op", "texture_delete"},
-                                       {"name", app.selectedTexture},
-                                       {"replacement", app.replacementTexture}});
-                    else
-                        app.applyThen({{"op", "effect_delete"}});
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Cancel"))
-                    ImGui::CloseCurrentPopup();
-                ImGui::EndPopup();
+        const bool noPopup = !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId);
+        if (app.loaded() && !app.pending() && noPopup && !app.requestDeleteDialog &&
+            app.cleanupPrompted.insert(app.state.at("documentId").get<uint64_t>()).second) {
+            app.cleanupTextures.clear();
+            for (const auto& name : app.state.value("unusedTextures", Json::array()))
+                app.cleanupTextures[name.get<std::string>()] = true;
+            if (!app.cleanupTextures.empty()) {
+                app.pendingDelete = {{"op", "unused_textures_delete"},
+                                     {"documentId", app.state.at("documentId")}};
+                app.requestDeleteDialog = true;
             }
+        }
+        if (app.requestDeleteDialog && noPopup) {
+            ImGui::OpenPopup("Delete resources");
+            app.requestDeleteDialog = false;
+        }
+        if (ImGui::BeginPopupModal("Delete resources", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            const auto operation = app.pendingDelete.at("op").get<std::string>();
+            const bool texture = operation == "texture_delete";
+            const bool cleanupOnly = operation == "unused_textures_delete";
+            const auto names = app.pendingDelete.value("names", std::vector<std::string>());
+            if (!cleanupOnly) {
+                ImGui::Text("Delete %zu %s?", names.size(), texture ? "texture(s)" : "effect(s)");
+                ImGui::BeginChild("Resources to delete", ImVec2(500 * uiScale,
+                                  std::min(6.f, float(names.size())) * ImGui::GetTextLineHeightWithSpacing()),
+                                  ImGuiChildFlags_Borders);
+                for (const auto& name : names)
+                    ImGui::TextUnformatted(name.c_str());
+                ImGui::EndChild();
+            }
+            if (texture) {
+                ImGui::TextUnformatted("References will use the selected replacement.");
+                if (ImGui::BeginCombo("Replacement", app.replacementTexture.empty()
+                                                         ? "None (clear references)"
+                                                         : app.replacementTexture.c_str())) {
+                    if (ImGui::Selectable("None (clear references)", app.replacementTexture.empty()))
+                        app.replacementTexture.clear();
+                    for (const auto& item : app.state["textures"]) {
+                        auto name = item.at("name").get<std::string>();
+                        if (std::find(names.begin(), names.end(), name) == names.end() &&
+                            ImGui::Selectable(name.c_str(), name == app.replacementTexture))
+                            app.replacementTexture = name;
+                    }
+                    ImGui::EndCombo();
+                }
+            } else if (!cleanupOnly)
+                ImGui::TextUnformatted("References to deleted child effects will no longer resolve.");
+
+            if (!app.cleanupTextures.empty()) {
+                ImGui::TextUnformatted(cleanupOnly ? "Delete unused textures from this BREFT?"
+                                                   : "Also delete textures that become unused?");
+                ImGui::BeginChild("Unused textures", ImVec2(500 * uiScale,
+                                  std::min(10.f, float(app.cleanupTextures.size())) * ImGui::GetFrameHeightWithSpacing()),
+                                  ImGuiChildFlags_Borders);
+                for (auto& [name, remove] : app.cleanupTextures) {
+                    ImGui::PushID(name.c_str());
+                    ImGui::Checkbox(name.c_str(), &remove);
+                    ImGui::PopID();
+                }
+                ImGui::EndChild();
+            }
+
+            if (ImGui::Button(cleanupOnly ? "Delete selected" : "Delete")) {
+                auto request = app.pendingDelete;
+                Json cleanup = Json::array();
+                for (const auto& [name, remove] : app.cleanupTextures)
+                    if (remove)
+                        cleanup.push_back(name);
+                if (cleanupOnly)
+                    request["names"] = cleanup;
+                else if (texture)
+                    request["replacement"] = app.replacementTexture;
+                else
+                    request["deleteTextures"] = cleanup;
+                if (!cleanupOnly || !cleanup.empty())
+                    app.applyThen(std::move(request));
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+                ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
         }
         if (ImGui::BeginPopupModal("Open BREFF + BREFT", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::SetNextItemWidth(500 * uiScale);
@@ -1682,7 +1798,7 @@ namespace {
             fileShortcutsAllowed && app.loaded() && !io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_S, false);
         const bool saveAsShortcut =
             fileShortcutsAllowed && app.loaded() && io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_S, false);
-        if (command && shortcutsAllowed) {
+        if (command && shortcutsAllowed && !app.multipleSelected()) {
             if (ImGui::IsKeyPressed(ImGuiKey_C, false))
                 app.copyEffect(false);
             if (ImGui::IsKeyPressed(ImGuiKey_X, false))
@@ -1690,6 +1806,8 @@ namespace {
             if (ImGui::IsKeyPressed(ImGuiKey_V, false))
                 app.pasteEffect(io.KeyShift);
         }
+        if (shortcutsAllowed && !command && !io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
+            app.beginDelete();
         ImGui::BeginDisabled(app.pending() || app.disconnected);
         if (ImGui::Button("Open pair") || openShortcut) {
             app.breffPath.clear();
@@ -1804,6 +1922,7 @@ namespace {
         divider();
         ImGui::BeginDisabled(!app.loaded());
         if (app.textureMode) {
+            ImGui::BeginDisabled(app.multipleSelected());
             if (ImGui::Button("Add")) {
                 app.resourceName = "NewTexture";
                 app.beginTextureImport(false);
@@ -1815,12 +1934,14 @@ namespace {
                 app.resourceName = app.selectedTexture;
                 ImGui::OpenPopup("Rename texture");
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Delete")) {
-                app.replacementTexture.clear();
-                ImGui::OpenPopup("Delete texture");
-            }
             ImGui::EndDisabled();
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!app.canDelete());
+            if (ImGui::Button("Delete"))
+                app.beginDelete();
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(app.multipleSelected());
             ImGui::SameLine();
             if (ImGui::Button("Import"))
                 app.choose(6);
@@ -1834,7 +1955,9 @@ namespace {
                 ImGui::OpenPopup("Replace texture");
             }
             ImGui::EndDisabled();
+            ImGui::EndDisabled();
         } else {
+            ImGui::BeginDisabled(app.multipleSelected());
             if (ImGui::Button("Add")) {
                 app.resourceName = "NewEffect";
                 ImGui::OpenPopup("Add effect");
@@ -1845,10 +1968,14 @@ namespace {
                 app.resourceName = app.selected();
                 ImGui::OpenPopup("Rename effect");
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Delete"))
-                ImGui::OpenPopup("Delete effect");
             ImGui::EndDisabled();
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!app.canDelete());
+            if (ImGui::Button("Delete"))
+                app.beginDelete();
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(app.multipleSelected());
             ImGui::SameLine();
             if (ImGui::Button("Import")) {
                 app.filePath.clear();
@@ -1865,6 +1992,7 @@ namespace {
                 app.filePath.clear();
                 ImGui::OpenPopup("Replace with JSON");
             }
+            ImGui::EndDisabled();
             ImGui::EndDisabled();
         }
         ImGui::EndDisabled();
@@ -1928,7 +2056,7 @@ namespace {
             const auto selected = app.textureMode ? app.selectedTexture : app.selected();
             std::string keyboardSelection;
             if (!listDisabled && shortcutsAllowed && ImGui::IsWindowFocused() && !ImGui::IsAnyItemActive() &&
-                !command && !io.KeyAlt && !io.KeyShift && !visible.empty()) {
+                !command && !io.KeyAlt && !visible.empty()) {
                 const int direction =
                     int(ImGui::IsKeyPressed(ImGuiKey_DownArrow)) - int(ImGui::IsKeyPressed(ImGuiKey_UpArrow));
                 if (direction) {
@@ -1940,10 +2068,7 @@ namespace {
                     // This list handles selection directly, including when general ImGui navigation is enabled.
                     ImGui::NavMoveRequestCancel();
                     if (keyboardSelection != selected) {
-                        if (app.textureMode)
-                            app.selectedTexture = keyboardSelection;
-                        else
-                            app.applyThen({{"op", "select"}, {"name", keyboardSelection}});
+                        app.selectResource(keyboardSelection, visible, false, io.KeyShift);
                     }
                 }
             }
@@ -1953,13 +2078,8 @@ namespace {
                     ImGui::SeparatorText("Missing from BREFT");
                     missingSection = true;
                 }
-                if (ImGui::Selectable(name.c_str(),
-                                      name == (keyboardSelection.empty() ? selected : keyboardSelection))) {
-                    if (app.textureMode)
-                        app.selectedTexture = name;
-                    else
-                        app.applyThen({{"op", "select"}, {"name", name}});
-                }
+                if (ImGui::Selectable(name.c_str(), app.selection().contains(name)))
+                    app.selectResource(name, visible, io.KeyCtrl || command, io.KeyShift);
                 if (name == keyboardSelection)
                     ImGui::ScrollToItem(ImGuiScrollFlags_KeepVisibleEdgeY);
             }
@@ -2000,6 +2120,7 @@ namespace {
                                path = dependency.at("field").get<std::string>();
                     ImGui::PushID(path.c_str());
                     if (ImGui::Selectable(name.c_str())) {
+                        app.effectSelection.single(name);
                         app.applyThen({{"op", "select"}, {"name", name}});
                         app.textureMode = false;
                         app.selectResourceTab = 0;
@@ -2010,7 +2131,7 @@ namespace {
                 ImGui::EndDisabled();
             }
         } else if (!app.draft.is_null()) {
-            ImGui::BeginDisabled(app.disconnected || !app.queue.empty() ||
+            ImGui::BeginDisabled(app.multipleSelected() || app.disconnected || !app.queue.empty() ||
                                  (app.busy && app.activeOperation != "replace"));
             if (ImGui::BeginTabBar("editor tabs")) {
                 if (ImGui::BeginTabItem("Fields")) {
@@ -2168,6 +2289,7 @@ namespace {
                 for (const auto& [name, warnings] : conversionWarnings.items()) {
                     ImGui::BeginDisabled(app.pending() || app.disconnected || app.dirtyDraft || app.rawDirty);
                     if (ImGui::Selectable(name.c_str(), !app.textureMode && name == app.selected())) {
+                        app.effectSelection.single(name);
                         app.applyThen({{"op", "select"}, {"name", name}});
                         app.textureMode = false;
                         app.selectResourceTab = 0;

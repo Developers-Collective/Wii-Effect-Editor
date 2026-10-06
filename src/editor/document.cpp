@@ -96,7 +96,20 @@ namespace breff {
                     throw std::runtime_error("Resource name already exists");
         }
 
-        template <class F> void visit(Json& value, const std::string& path, F&& fn) {
+        std::set<std::string> deletionNames(const Json& request, const codec::ResourceFile& archive,
+                                           const std::string& fallback) {
+            const auto names = request.value("names", Json::array({fallback})).get<std::set<std::string>>();
+            if (names.empty())
+                throw std::runtime_error("Select a resource to delete");
+            for (const auto& name : names)
+                if (std::none_of(archive.entries.begin(), archive.entries.end(), [&](const auto& entry) {
+                        return entry.name == name;
+                    }))
+                    throw std::runtime_error("Unknown resource: " + name);
+            return names;
+        }
+
+        template <class Value, class F> void visit(Value& value, const std::string& path, F&& fn) {
             if (value.is_object()) {
                 fn(value, path);
                 for (auto it = value.begin(); it != value.end(); ++it)
@@ -283,6 +296,31 @@ namespace breff {
         return archive;
     }
 
+    Json DocumentService::findUnusedTextures(const State& candidate, const std::set<std::string>& excluded) const {
+        // Undecoded effects may still reference any of the archive's textures.
+        for (const auto& [name, error] : candidate.errors.items())
+            if (!excluded.contains(name))
+                return Json::array();
+
+        std::set<std::string> used;
+        for (const auto& [name, value] : candidate.values.items()) {
+            if (excluded.contains(name))
+                continue;
+            // Keep references in retained version-specific fields as well.
+            visit(value, "", [&](const Json& object, const std::string& path) {
+                const auto key = textureKey(object, path);
+                if (!key.empty() && object.at(key).is_string())
+                    used.insert(object.at(key).get<std::string>());
+            });
+        }
+
+        Json result = Json::array();
+        for (const auto& entry : candidate.textures.entries)
+            if (!used.contains(entry.name))
+                result.push_back(entry.name);
+        return result;
+    }
+
     void DocumentService::publish(const State& candidate, const std::map<std::string, Bytes>* overrides) {
         // Render the actual destination representation through the runtime adapter.
         auto effects = effectArchive(candidate);
@@ -414,6 +452,7 @@ namespace breff {
         missingTextures = std::move(missing);
         conversionWarnings = std::move(warnings);
         contentDirty.reset();
+        unusedTextures = findUnusedTextures(candidate);
         ++generation;
     }
 
@@ -451,6 +490,7 @@ namespace breff {
                 {"externalTextures", externalTextureMetadata},
                 {"textureCount", textureMetadata.size()},
                 {"missingTextures", missingTextures},
+                {"unusedTextures", unusedTextures},
                 {"previewTextureFiles", previewTexturePaths},
                 {"snapshot", utf8(directory / "preview.breff")},
                 {"generation", generation},
@@ -871,6 +911,18 @@ namespace breff {
             contentDirty = false;
             return state();
         }
+        if (op == "effect_delete_inspect") {
+            const auto names = deletionNames(request, document.effects, document.selected);
+            const auto before = findUnusedTextures(document).get<std::set<std::string>>();
+            auto unused = findUnusedTextures(document, names);
+            std::erase_if(unused.get_ref<Json::array_t&>(), [&](const auto& name) {
+                return before.contains(name.template get<std::string>());
+            });
+            auto result = state();
+            result["deleteInspection"] = {{"names", names}, {"unusedTextures", unused}};
+            return result;
+        }
+
         auto candidate = document;
         if (op == "set_compression") {
             const bool compressed = request.at("compressed");
@@ -1107,12 +1159,51 @@ namespace breff {
                 });
             candidate.selected = name;
         } else if (op == "effect_delete") {
+            const auto names = deletionNames(request, candidate.effects, document.selected);
             std::erase_if(candidate.effects.entries, [&](const auto& e) {
-                return e.name == document.selected;
+                return names.contains(e.name);
             });
-            candidate.values.erase(document.selected);
-            candidate.errors.erase(document.selected);
-            candidate.selected = candidate.effects.entries.empty() ? "" : candidate.effects.entries.front().name;
+            for (const auto& name : names) {
+                candidate.values.erase(name);
+                candidate.originalValues.erase(name);
+                candidate.errors.erase(name);
+            }
+            if (names.contains(candidate.selected))
+                candidate.selected = candidate.effects.entries.empty() ? "" : candidate.effects.entries.front().name;
+
+            const auto unused = findUnusedTextures(candidate).get<std::set<std::string>>();
+            const auto cleanup = request.value("deleteTextures", Json::array()).get<std::set<std::string>>();
+            for (const auto& name : cleanup)
+                if (!unused.contains(name))
+                    throw std::runtime_error("Texture is not unused: " + name);
+            std::erase_if(candidate.textures.entries, [&](const auto& entry) {
+                return cleanup.contains(entry.name);
+            });
+        } else if (op == "texture_delete" || op == "unused_textures_delete") {
+            const auto names = deletionNames(request, candidate.textures, request.value("name", std::string()));
+            const auto replacement = request.value("replacement", std::string());
+            if (op == "unused_textures_delete") {
+                const auto unused = findUnusedTextures(candidate).get<std::set<std::string>>();
+                for (const auto& name : names)
+                    if (!unused.contains(name))
+                        throw std::runtime_error("Texture is not unused: " + name);
+            } else {
+                if (!replacement.empty() &&
+                    (names.contains(replacement) ||
+                     std::none_of(candidate.textures.entries.begin(), candidate.textures.entries.end(),
+                                  [&](const auto& entry) { return entry.name == replacement; })))
+                    throw std::runtime_error("Choose an available replacement texture");
+                for (auto& effect : candidate.values)
+                    visit(effect, "", [&](Json& object, const std::string& path) {
+                        const auto key = textureKey(object, path);
+                        if (!key.empty() && object.at(key).is_string() &&
+                            names.contains(object.at(key).get<std::string>()))
+                            object[key] = replacement;
+                    });
+            }
+            std::erase_if(candidate.textures.entries, [&](const auto& entry) {
+                return names.contains(entry.name);
+            });
         } else if (op.starts_with("texture_")) {
             const std::string name = request.value("name", std::string());
             auto& entries = candidate.textures.entries;
@@ -1141,23 +1232,13 @@ namespace breff {
                 if (op == "texture_replace")
                     entry->data = textureImportBytes;
                 else {
-                    const std::string replacement = op == "texture_rename"
-                                                        ? request.at("newName").get<std::string>()
-                                                        : request.value("replacement", std::string());
-                    if (op == "texture_rename") {
-                        if (replacement == name)
-                            return state();
-                        validateName(replacement, candidate.textures);
-                        entry->name = replacement;
-                    } else if (op == "texture_delete") {
-                        if (!replacement.empty() &&
-                            (replacement == name || std::none_of(entries.begin(), entries.end(), [&](const auto& e) {
-                                 return e.name == replacement;
-                             })))
-                            throw std::runtime_error("Choose an available replacement texture");
-                        entries.erase(entry);
-                    } else
+                    if (op != "texture_rename")
                         throw std::runtime_error("Unknown texture operation");
+                    const auto replacement = request.at("newName").get<std::string>();
+                    if (replacement == name)
+                        return state();
+                    validateName(replacement, candidate.textures);
+                    entry->name = replacement;
                     for (auto& effect : candidate.values)
                         visit(effect, "", [&](Json& object, const std::string& path) {
                             auto key = textureKey(object, path);
@@ -1204,7 +1285,7 @@ namespace breff {
     Workspace::Json Workspace::handle(const Json& request) {
         try {
             const std::string op = request.at("op");
-            Json clipboard, importInspection, textureImportPreview;
+            Json clipboard, importInspection, textureImportPreview, deleteInspection;
             auto current = std::find_if(tabs.begin(), tabs.end(), [&](const auto& tab) {
                 return tab.id == selected;
             });
@@ -1286,9 +1367,7 @@ namespace breff {
                                  fs::u8path(tab.state.at("textureSourcePath").template get<std::string>())) == texture))
                             throw std::runtime_error("That file is already open in another tab");
                 }
-                if ((op == "paste" || op == "import" || op == "import_replace" || op == "import_scan" ||
-                     op == "texture_import" || op == "texture_export") &&
-                    request.value("documentId", selected) != selected)
+                if (request.value("documentId", selected) != selected)
                     throw std::runtime_error("The active file changed. Repeat the action in the intended tab.");
                 auto response = current->document->handle(request);
                 if (!response.value("ok", false))
@@ -1306,6 +1385,10 @@ namespace breff {
                     importInspection = std::move(current->state["importInspection"]);
                     current->state.erase("importInspection");
                 }
+                if (current->state.contains("deleteInspection")) {
+                    deleteInspection = std::move(current->state["deleteInspection"]);
+                    current->state.erase("deleteInspection");
+                }
             }
             auto result = state();
             if (!textureImportPreview.is_null())
@@ -1314,6 +1397,8 @@ namespace breff {
                 result["clipboard"] = std::move(clipboard);
             if (!importInspection.is_null())
                 result["importInspection"] = std::move(importInspection);
+            if (!deleteInspection.is_null())
+                result["deleteInspection"] = std::move(deleteInspection);
             return {{"ok", true}, {"data", std::move(result)}};
         } catch (const std::exception& e) {
             return {{"ok", false}, {"error", e.what()}};
